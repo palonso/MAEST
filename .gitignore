@@ -1,0 +1,9 @@
+lightning_logs/*
+exp_log/* 
+
+predictions/*
+
+*.swp
+
+__pycache__
+*.pyc
