@@ -9,13 +9,14 @@ import collections
 import math
 import logging
 import warnings
-from functools import partial
 from collections import OrderedDict
 from copy import deepcopy
+from functools import partial
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from sacred import Ingredient
 
 from .helpers.vit_helpers import (
     update_default_cfg_and_kwargs,
@@ -24,7 +25,7 @@ from .helpers.vit_helpers import (
     build_model_with_cfg,
 )
 
-_logger = logging.getLogger()
+_logger = logging.getLogger("passt")
 
 IMAGENET_DEFAULT_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_DEFAULT_STD = (0.229, 0.224, 0.225)
@@ -56,194 +57,20 @@ def _cfg(url="", **kwargs):
 
 
 default_cfgs = {
-    # patch models (weights from official Google JAX impl)
-    "vit_tiny_patch16_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz"
+    "passt_s_swa_p16_128_ap476": _cfg(
+        url='https://github.com/kkoutini/PaSST/releases/download/v0.0.1-audioset/passt-s-f128-p16-s10-ap.476-swa.pt',
+        mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD, input_size=(1, 128, 998), crop_pct=1.0,
+        classifier=('head.1', 'head_dist'),
+        num_classes=527,
     ),
-    "vit_tiny_patch16_384": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_384.npz",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    "vit_small_patch32_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "S_32-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz"
-    ),
-    "vit_small_patch32_384": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "S_32-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_384.npz",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    "vit_small_patch16_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz"
-    ),
-    "vit_small_patch16_384": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_384.npz",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    "vit_base_patch32_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "B_32-i21k-300ep-lr_0.001-aug_medium1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz"
-    ),
-    "vit_base_patch32_384": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "B_32-i21k-300ep-lr_0.001-aug_light1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_384.npz",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    "vit_base_patch16_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz"
-    ),
-    "vit_base_patch16_384": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_384.npz",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    "vit_large_patch32_224": _cfg(
-        url="",  # no official model weights for this combo, only for in21k
-    ),
-    "vit_large_patch32_384": _cfg(
-        url="https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-vitjx/jx_vit_large_p32_384-9b920ba8.pth",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    "vit_large_patch16_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "L_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.1-sd_0.1--imagenet2012-steps_20k-lr_0.01-res_224.npz"
-    ),
-    "vit_large_patch16_384": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/"
-        "L_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.1-sd_0.1--imagenet2012-steps_20k-lr_0.01-res_384.npz",
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-    ),
-    # patch models, imagenet21k (weights from official Google JAX impl)
-    "vit_tiny_patch16_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0.npz",
-        num_classes=21843,
-    ),
-    "vit_small_patch32_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/S_32-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0.npz",
-        num_classes=21843,
-    ),
-    "vit_small_patch16_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0.npz",
-        num_classes=21843,
-    ),
-    "vit_base_patch32_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/B_32-i21k-300ep-lr_0.001-aug_medium1-wd_0.03-do_0.0-sd_0.0.npz",
-        num_classes=21843,
-    ),
-    "vit_base_patch16_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0.npz",
-        num_classes=21843,
-    ),
-    "vit_large_patch32_224_in21k": _cfg(
-        url="https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-vitjx/jx_vit_large_patch32_224_in21k-9046d2e7.pth",
-        num_classes=21843,
-    ),
-    "vit_large_patch16_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/augreg/L_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.1-sd_0.1.npz",
-        num_classes=21843,
-    ),
-    "vit_huge_patch14_224_in21k": _cfg(
-        url="https://storage.googleapis.com/vit_models/imagenet21k/ViT-H_14.npz",
-        hf_hub="timm/vit_huge_patch14_224_in21k",
-        num_classes=21843,
-    ),
-    # SAM trained models (https://arxiv.org/abs/2106.01548)
-    "vit_base_patch32_sam_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/sam/ViT-B_32.npz"
-    ),
-    "vit_base_patch16_sam_224": _cfg(
-        url="https://storage.googleapis.com/vit_models/sam/ViT-B_16.npz"
-    ),
-    # deit models (FB weights)
-    "deit_tiny_patch16_224": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-    ),
-    "deit_small_patch16_224": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_small_patch16_224-cd65a155.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-    ),
-    "deit_base_patch16_224": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_base_patch16_224-b5f2ef4d.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-    ),
-    "deit_base_patch16_384": _cfg(
+    "deit_base_distilled_patch16_384": _cfg(
         url="https://dl.fbaipublicfiles.com/deit/deit_base_patch16_384-8de9b5d1.pth",
         mean=IMAGENET_DEFAULT_MEAN,
         std=IMAGENET_DEFAULT_STD,
         input_size=(3, 384, 384),
         crop_pct=1.0,
     ),
-    "deit_tiny_distilled_patch16_224": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_tiny_distilled_patch16_224-b40b3cf7.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        classifier=("head", "head_dist"),
-    ),
-    "deit_small_distilled_patch16_224": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_small_distilled_patch16_224-649709d9.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        classifier=("head", "head_dist"),
-    ),
-    "deit_base_distilled_patch16_224": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_base_distilled_patch16_224-df68dfff.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        classifier=("head", "head_dist"),
-    ),
-    "deit_base_distilled_patch16_384": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_base_distilled_patch16_384-d0272ac0.pth",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(3, 384, 384),
-        crop_pct=1.0,
-        classifier=("head", "head_dist"),
-    ),
-    # ViT ImageNet-21K-P pretraining by MILL
-    "vit_base_patch16_224_miil_in21k": _cfg(
-        url="https://miil-public-eu.oss-eu-central-1.aliyuncs.com/model-zoo/ImageNet_21K_P/models/timm/vit_base_patch16_224_in21k_miil.pth",
-        mean=(0, 0, 0),
-        std=(1, 1, 1),
-        crop_pct=0.875,
-        interpolation="bilinear",
-        num_classes=11221,
-    ),
-    "vit_base_patch16_224_miil": _cfg(
-        url="https://miil-public-eu.oss-eu-central-1.aliyuncs.com/model-zoo/ImageNet_21K_P/models/timm"
-        "/vit_base_patch16_224_1k_miil_84_4.pth",
-        mean=(0, 0, 0),
-        std=(1, 1, 1),
-        crop_pct=0.875,
-        interpolation="bilinear",
-    ),
-    # PaSST
-    "passt_s_swa_p16_128_ap476": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.1-audioset/passt-s-f128-p16-s10-ap.476-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
     "passt_s_swa_p16_128_ap476_discogs": _cfg(
-        # url='https://drive.google.com/uc?export=download&id=1S4FKkyQPl1FWf8SlngN46tvH5rt4bZij',
         url="",
         mean=IMAGENET_DEFAULT_MEAN,
         std=IMAGENET_DEFAULT_STD,
@@ -251,132 +78,6 @@ default_cfgs = {
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
-    ),
-    "passt_s_swa_p16_128_ap4761": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s10-ap.4761-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_p16_128_ap472": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s10-ap.472.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_p16_s16_128_ap468": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s16-ap.468.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_swa_p16_s16_128_ap473": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s16-ap.473-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_swa_p16_s14_128_ap471": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s14-ap.471-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_p16_s14_128_ap469": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s14-ap.469.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_swa_p16_s12_128_ap473": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s12-ap.473-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_p16_s12_128_ap470": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.2-audioset/passt-s-f128-p16-s12-ap.470.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_swa_f128_stfthop100_p16_s10_ap473": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.3-audioset/passt-s-f128-stfthop100-p16-s10-ap.473-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 3200),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt_s_swa_f128_stfthop160_p16_s10_ap473": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.3-audioset/passt-s-f128-stfthop160-p16-s10-ap.473-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 2000),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt-s-f128-20sec-p16-s10-ap474-swa": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.5/passt-s-f128-20sec-p16-s10-ap.474-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 2000),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "passt-s-f128-30sec-p16-s10-ap473-swa": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.5/passt-s-f128-30sec-p16-s10-ap.473-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 3000),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=527,
-    ),
-    "openmic2008_passt_u_f128_p16_s10_ap85_swa": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.4-openmic/openmic2008.passt-u-f128-p16-s10-ap.85-swa.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 3200),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=20,
-    ),
-    "openmic2008_passt_u_f128_p16_s10_ap85  ": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.4-openmic/openmic2008.passt-u-f128-p16-s10-ap.85.pt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 2000),
-        crop_pct=1.0,
-        classifier=("head.1", "head_dist"),
-        num_classes=20,
     ),
 }
 
@@ -480,7 +181,7 @@ class PatchEmbed(nn.Module):
             x = x.flatten(2).transpose(1, 2)  # BCHW -> BNC
         x = self.norm(x)
         if first_RUN:
-            print("self.norm(x)", x.size())
+            _logger.debug(f"self.norm(x) size: {x.size()}")
         return x
 
 
@@ -531,9 +232,9 @@ class PatchEmbedFreq(nn.Module):
         ]
 
         if first_RUN:
-            print("lb embeddings", self.lb)
+            _logger.debug(f"lb embeddings {self.lb}")
         if first_RUN:
-            print("hb embeddings", self.hb)
+            _logger.debug(f"hb embeddings {self.hb}")
 
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
 
@@ -555,7 +256,7 @@ class PatchEmbedFreq(nn.Module):
             x = x.flatten(2).transpose(1, 2)  # BCHW -> BNC
         x = self.norm(x)
         if first_RUN:
-            print("self.norm(x)", x.size())
+            _logger.debug(f"self.norm(x): {x.size()}")
         return x
 
 
@@ -734,7 +435,7 @@ class PaSST(nn.Module):
             embed_dim=embed_dim,
             flatten=False,
         )
-        num_patches = self.patch_embed.num_patches
+        self.num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.dist_token = (
@@ -852,148 +553,15 @@ class PaSST(nn.Module):
                 else nn.Identity()
             )
 
-    def forward_until_block(
-        self, x, n_block=-1, return_self_attention=False, compact_features=True
-    ):
+    def forward_features(self, x, transformer_block=-1, return_self_attention=False):
         global first_RUN  # not jit friendly? use trace instead
         x = self.patch_embed(x)  # [b, e, f, t]
         B_dim, E_dim, F_dim, T_dim = x.shape  # slow
         if first_RUN:
-            print(" patch_embed : ", x.shape)
+            _logger.debug("patch_embed shape: {x.shape}")
         # Adding Time/Freq information
         if first_RUN:
-            print(" self.time_new_pos_embed.shape", self.time_new_pos_embed.shape)
-        time_new_pos_embed = self.time_new_pos_embed
-        if x.shape[-1] < time_new_pos_embed.shape[-1]:
-            time_new_pos_embed = time_new_pos_embed[:, :, :, : x.shape[-1]]
-        else:
-            warnings.warn(
-                f"the patches shape:{x.shape} are larger than the expected time encodings {time_new_pos_embed.shape}, x will be cut"
-            )
-            x = x[:, :, :, : time_new_pos_embed.shape[-1]]
-        x = x + time_new_pos_embed
-        if first_RUN:
-            print(" self.freq_new_pos_embed.shape", self.freq_new_pos_embed.shape)
-        x = x + self.freq_new_pos_embed
-
-        if self.s_patchout_f_indices:
-            if first_RUN:
-                print(
-                    "WARNING!! Applying freq patchout indices on feature extraction "
-                )
-            if first_RUN:
-                print(
-                    f"X Before Freq Patchout of bands {self.s_patchout_f_indices} ",
-                    x.size(),
-                )
-
-            kept_indices = torch.arange(F_dim)
-            for i in self.s_patchout_f_indices:
-                kept_indices = kept_indices[kept_indices != int(i)]
-            x = x[:, :, kept_indices, :]
-            if first_RUN:
-                print(" \n X after freq Patchout: ", x.size())
-
-        if self.s_patchout_f_interleaved:
-            if first_RUN:
-                print(
-                    "WARNING!! Applying freq patchout interleaved feature extraction "
-                )
-            if first_RUN:
-                print(
-                    f"X Before freq Patchout of {self.s_patchout_t_interleaved} bands",
-                    x.size(),
-                )
-
-            kept_indices = torch.arange(0, F_dim, self.s_patchout_f_interleaved)
-            x = x[:, :, kept_indices, :]
-            if first_RUN:
-                print(" \n X after temp Patchout: ", x.size())
-
-        if self.s_patchout_t_indices:
-            if first_RUN:
-                print(
-                    "WARNING!! Applying temp patchout indices on feature extraction "
-                )
-            if first_RUN:
-                print(
-                    f"X Before temp Patchout of bands {self.s_patchout_t_indices} ",
-                    x.size(),
-                )
-
-            kept_indices = torch.arange(T_dim)
-            for i in self.s_patchout_t_indices:
-                kept_indices = kept_indices[kept_indices != int(i)]
-            x = x[:, :, :, kept_indices]
-            if first_RUN:
-                print(" \n X after temp Patchout: ", x.size())
-
-        if self.s_patchout_t_interleaved:
-            if first_RUN:
-                print(
-                    "WARNING!! Applying temp patchout interleaved on feature extraction"
-                )
-            if first_RUN:
-                print(
-                    f"X Before temp Patchout of {self.s_patchout_t_interleaved} bands",
-                    x.size(),
-                )
-
-            kept_indices = torch.arange(0, T_dim, self.s_patchout_t_interleaved)
-            x = x[:, :, :, kept_indices]
-            if first_RUN:
-                print(" \n X after temp Patchout: ", x.size())
-
-        ###
-        # Flatten the sequence
-        x = x.flatten(2).transpose(1, 2)
-        # Unstructured Patchout
-        if first_RUN:
-            print("X flattened", x.size())
-        # Add the C/D tokens
-        cls_tokens = self.cls_token.expand(B_dim, -1, -1) + self.new_pos_embed[:, :1, :]
-        if self.dist_token is None:
-            x = torch.cat((cls_tokens, x), dim=1)
-        else:
-            dist_token = (
-                self.dist_token.expand(B_dim, -1, -1) + self.new_pos_embed[:, 1:, :]
-            )
-            if first_RUN:
-                print(" self.dist_token.shape", dist_token.shape)
-            x = torch.cat((cls_tokens, dist_token, x), dim=1)
-
-        if first_RUN:
-            print(" final sequence x", x.shape)
-        x = self.pos_drop(x)
-        for i, block in enumerate(self.blocks):
-            if i == n_block:
-                if first_RUN:
-                    print(f"returning self-attention from block {i}")
-
-                x = block(x, return_self_attention=return_self_attention)
-                break
-            else:
-                x = block(x)
-
-        if compact_features:
-            cls = x[:, 0, :]
-            dist = x[:, 1, :]
-            feats = torch.mean(x[:, 2:, :], dim=1)
-            first_RUN = False
-            return torch.cat([cls, dist, feats], dim=1)
-
-        first_RUN = False
-        return x
-
-    def forward_features(self, x):
-        global first_RUN  # not jit friendly? use trace instead
-        x = self.patch_embed(x)  # [b, e, f, t]
-        B_dim, E_dim, F_dim, T_dim = x.shape  # slow
-        if first_RUN:
-            print(" patch_embed : ", x.shape)
-        # Adding Time/Freq information
-        if first_RUN:
-            print(" self.time_new_pos_embed.shape", self.time_new_pos_embed.shape)
+            _logger.debug("self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}")
         time_new_pos_embed = self.time_new_pos_embed
         if x.shape[-1] < time_new_pos_embed.shape[-1]:
             if self.training:
@@ -1001,9 +569,8 @@ class PaSST(nn.Module):
                     1 + time_new_pos_embed.shape[-1] - x.shape[-1], (1,)
                 ).item()
                 if first_RUN:
-                    print(
-                        f" CUT with randomoffset={toffset} time_new_pos_embed.shape",
-                        time_new_pos_embed.shape,
+                    _logger.debug(
+                        f"CUT with randomoffset={toffset} time_new_pos_embed.shape: {time_new_pos_embed.shape}",
                     )
                 time_new_pos_embed = time_new_pos_embed[
                     :, :, :, toffset: toffset + x.shape[-1]
@@ -1011,7 +578,7 @@ class PaSST(nn.Module):
             else:
                 time_new_pos_embed = time_new_pos_embed[:, :, :, : x.shape[-1]]
             if first_RUN:
-                print(" CUT time_new_pos_embed.shape", time_new_pos_embed.shape)
+                _logger.debug(f"CUT time_new_pos_embed.shape: {time_new_pos_embed.shape}")
         else:
             warnings.warn(
                 f"the patches shape:{x.shape} are larger than the expected time encodings {time_new_pos_embed.shape}, x will be cut"
@@ -1019,40 +586,39 @@ class PaSST(nn.Module):
             x = x[:, :, :, : time_new_pos_embed.shape[-1]]
         x = x + time_new_pos_embed
         if first_RUN:
-            print(" self.freq_new_pos_embed.shape", self.freq_new_pos_embed.shape)
+            _logger.debug(f"self.freq_new_pos_embed.shape: {self.freq_new_pos_embed.shape}")
         x = x + self.freq_new_pos_embed
 
         # Structured Patchout https://arxiv.org/abs/2110.05069 Section 2.2
         if self.training and self.s_patchout_t:
             if first_RUN:
-                print(f"X Before time Patchout of {self.s_patchout_t} ", x.size())
+                _logger.debug(f"X Before time Patchout of {self.s_patchout_t}: {x.size()}")
             # ([1, 768, 1, 82])
             random_indices = (
                 torch.randperm(T_dim)[: T_dim - self.s_patchout_t].sort().values
             )
             x = x[:, :, :, random_indices]
             if first_RUN:
-                print("X after time Patchout", x.size())
+                _logger.debug(f"X after time Patchout {x.size()}")
         if self.training and self.s_patchout_f:
             if first_RUN:
-                print(f"X Before Freq Patchout of {self.s_patchout_f} ", x.size())
+                _logger.debug(f"X Before Freq Patchout of {self.s_patchout_f}: {x.size()}")
             # [1, 768, 12, 1]
             random_indices = (
                 torch.randperm(F_dim)[: F_dim - self.s_patchout_f].sort().values
             )
             x = x[:, :, random_indices, :]
             if first_RUN:
-                print(" \n X after freq Patchout: ", x.size())
+                _logger.debug(f"X after freq Patchout: {x.size()}")
 
         if self.s_patchout_f_indices:
             if first_RUN:
-                print(
-                    f"WARNING!! Applying freq patchout indices on feature extraction "
+                _logger.debug(
+                    "WARNING!! Applying freq patchout indices on feature extraction "
                 )
             if first_RUN:
-                print(
-                    f"X Before Freq Patchout of bands {self.s_patchout_f_indices} ",
-                    x.size(),
+                _logger.debug(
+                    f"X Before Freq Patchout of bands {self.s_patchout_f_indices}: {x.size()}"
                 )
 
             kept_indices = torch.arange(F_dim)
@@ -1060,33 +626,31 @@ class PaSST(nn.Module):
                 kept_indices = kept_indices[kept_indices != int(i)]
             x = x[:, :, kept_indices, :]
             if first_RUN:
-                print(" \n X after freq Patchout: ", x.size())
+                _logger.debug(f"X after freq Patchout: {x.size()}")
 
         if self.s_patchout_f_interleaved:
             if first_RUN:
-                print(
-                    f"WARNING!! Applying freq patchout interleaved feature extraction "
+                _logger.debug(
+                    "WARNING!! Applying freq patchout interleaved feature extraction"
                 )
             if first_RUN:
-                print(
-                    f"X Before freq Patchout of {self.s_patchout_t_interleaved} bands",
-                    x.size(),
+                _logger.debug(
+                    f"X Before freq Patchout of {self.s_patchout_t_interleaved} bands: {x.size()}",
                 )
 
             kept_indices = torch.arange(0, F_dim, self.s_patchout_f_interleaved)
             x = x[:, :, kept_indices, :]
             if first_RUN:
-                print(" \n X after temp Patchout: ", x.size())
+                _logger.debug(f"X after temp Patchout: {x.size()}")
 
         if self.s_patchout_t_indices:
             if first_RUN:
-                print(
-                    f"WARNING!! Applying temp patchout indices on feature extraction "
+                _logger.debug(
+                    "WARNING!! Applying temp patchout indices on feature extraction"
                 )
             if first_RUN:
-                print(
-                    f"X Before temp Patchout of bands {self.s_patchout_t_indices} ",
-                    x.size(),
+                _logger.debug(
+                    f"X Before temp Patchout of bands {self.s_patchout_t_indices}: {x.size()}"
                 )
 
             kept_indices = torch.arange(T_dim)
@@ -1094,15 +658,15 @@ class PaSST(nn.Module):
                 kept_indices = kept_indices[kept_indices != int(i)]
             x = x[:, :, :, kept_indices]
             if first_RUN:
-                print(" \n X after temp Patchout: ", x.size())
+                _logger.debug(f"X after temp Patchout: {x.size()}")
 
         if self.s_patchout_t_interleaved:
             if first_RUN:
-                print(
-                    f"WARNING!! Applying temp patchout interleaved on feature extraction"
+                _logger.debug(
+                    "WARNING!! Applying temp patchout interleaved on feature extraction"
                 )
             if first_RUN:
-                print(
+                _logger.debug(
                     f"X Before temp Patchout of {self.s_patchout_t_interleaved} bands",
                     x.size(),
                 )
@@ -1110,13 +674,13 @@ class PaSST(nn.Module):
             kept_indices = torch.arange(0, T_dim, self.s_patchout_t_interleaved)
             x = x[:, :, :, kept_indices]
             if first_RUN:
-                print(" \n X after temp Patchout: ", x.size())
+                _logger.debug(f"X after temp Patchout: {x.size()}")
         ###
         # Flatten the sequence
         x = x.flatten(2).transpose(1, 2)
         # Unstructured Patchout
         if first_RUN:
-            print("X flattened", x.size())
+            _logger.debug(f"X flattened {x.size()}")
         if self.training and self.u_patchout:
             seq_len = x.shape[1]
             random_indices = (
@@ -1124,14 +688,14 @@ class PaSST(nn.Module):
             )
             x = x[:, random_indices, :]
             if first_RUN:
-                print("X After Unstructured Patchout", x.size())
+                _logger.debug(f"X After Unstructured Patchout: {x.size()}")
         ####
         # Add the C/D tokens
         if first_RUN:
-            print(" self.new_pos_embed.shape", self.new_pos_embed.shape)
+            _logger.debug(f"self.new_pos_embed.shape: {self.new_pos_embed.shape}")
         cls_tokens = self.cls_token.expand(B_dim, -1, -1) + self.new_pos_embed[:, :1, :]
         if first_RUN:
-            print(" self.cls_tokens.shape", cls_tokens.shape)
+            _logger.debug("self.cls_tokens.shape: {cls_tokens.shape}")
         if self.dist_token is None:
             x = torch.cat((cls_tokens, x), dim=1)
         else:
@@ -1139,56 +703,78 @@ class PaSST(nn.Module):
                 self.dist_token.expand(B_dim, -1, -1) + self.new_pos_embed[:, 1:, :]
             )
             if first_RUN:
-                print(" self.dist_token.shape", dist_token.shape)
+                _logger.debug(f"self.dist_token.shape {dist_token.shape}")
             x = torch.cat((cls_tokens, dist_token, x), dim=1)
 
         if first_RUN:
-            print(" final sequence x", x.shape)
+            _logger.debug(f"final sequence x: {x.shape}")
         x = self.pos_drop(x)
-        x = self.blocks(x)
-        if first_RUN:
-            print(f" after {len(self.blocks)} atten blocks x", x.shape)
-        x = self.norm(x)
-        if self.dist_token is None:
-            return self.pre_logits(x[:, 0])
-        else:
-            return x[:, 0], x[:, 1]
 
-    def forward(self, x):
+        first_RUN = False
+
+        if transformer_block == -1:
+            x = self.blocks(x)
+            x = self.norm(x)
+            if self.dist_token is None:
+                return self.pre_logits(x[:, 0])
+            else:
+                return x[:, 0], x[:, 1]
+        else:
+            for i, block in enumerate(self.blocks):
+                if i == transformer_block:
+                    if first_RUN:
+                        _logger.debug(f"returning self-attention from block {i}")
+
+                    x = block(x, return_self_attention=return_self_attention)
+                    break
+                else:
+                    x = block(x)
+
+            if first_RUN:
+                _logger.debug(f"after {len(self.blocks)} atten blocks x {x.shape}")
+
+            cls = x[:, 0, :]
+            dist = x[:, 1, :]
+            feats = torch.mean(x[:, 2:, :], dim=1)
+            first_RUN = False
+            return torch.cat([cls, dist, feats], dim=1)
+
+    def forward(self, x, transformer_block=-1, return_self_attention=False):
         global first_RUN
         if first_RUN:
-            print("x", x.size())
+            _logger.debug(f"x size: {len(x)}")
 
-        x = self.forward_features(x)
+        x = self.forward_features(x, transformer_block=-1,
+                                  return_self_attention=return_self_attention)
 
         if self.distilled_type == "mean":
             features = (x[0] + x[1]) / 2
             if first_RUN:
-                print("forward_features", features.size())
+                _logger.debug(f"features size: {features.size()}")
             x = self.head(features)
             if first_RUN:
-                print("head", x.size())
+                _logger.debug(f"head size: {x.size()}")
             first_RUN = False
             return x, features
         elif self.distilled_type == "separated":
             features = (x[0] + x[1]) / 2
             if first_RUN:
-                print("forward_features", features.size())
+                _logger.debug(f"features size: {features.size()}")
             x_cls = self.head(x[0])
             if first_RUN:
-                print("head cls", x_cls.size())
+                _logger.debug(f"head cls size: {x_cls.size()}")
             x_dist = self.head_dist(x[1])
             if first_RUN:
-                print("head dist", x_dist.size())
+                _logger.debug(f"head dist size: {x_dist.size()}")
             first_RUN = False
             return x_cls, x_dist, features
         else:
             features = x
             if first_RUN:
-                print("forward_features", features.size())
+                _logger.debug(f"features size: {features.size()}")
             x = self.head(x)
         if first_RUN:
-            print("head", x.size())
+            _logger.debug(f"head size: {x.size()}")
         return x, features
 
 
@@ -1324,9 +910,9 @@ def checkpoint_filter_fn(state_dict, model):
         state_dict["time_new_pos_embed"] = time_new_pos_embed
 
     else:
-        print("new pos embed:", state_dict["new_pos_embed"].shape)
-        print("new pos embed time:", state_dict["freq_new_pos_embed"].shape)
-        print("new pos embed freq:", state_dict["time_new_pos_embed"].shape)
+        _logger.debug(f"new pos embed: {state_dict['new_pos_embed'].shape}")
+        _logger.debug(f"new pos embed time: {state_dict['freq_new_pos_embed'].shape}")
+        _logger.debug(f"new pos embed freq: {state_dict['time_new_pos_embed'].shape}")
 
         freq_old_dim = state_dict["freq_new_pos_embed"].numpy().shape[2]
         time_old_dim = state_dict["time_new_pos_embed"].numpy().shape[3]
@@ -1401,64 +987,37 @@ def _create_vision_transformer(variant, pretrained=False, default_cfg=None, **kw
     return model
 
 
-def vit_huge_patch14_224_in21k(pretrained=False, **kwargs):
-    """ViT-Huge model (ViT-H/14) from original paper (https://arxiv.org/abs/2010.11929).
-    ImageNet-21k weights @ 224x224, source https://github.com/google-research/vision_transformer.
-    NOTE: this model has a representation layer but the 21k classifier head is zero'd out in original weights
-    """
-    model_kwargs = dict(
-        patch_size=14,
-        embed_dim=1280,
-        depth=32,
-        num_heads=16,
-        representation_size=1280,
-        **kwargs,
-    )
-    model = _create_vision_transformer(
-        "vit_huge_patch14_224_in21k", pretrained=pretrained, **model_kwargs
-    )
-    return model
-
-
 def deit_base_distilled_patch16_384(pretrained=False, **kwargs):
-    """DeiT-base distilled model @ 384x384 from paper (https://arxiv.org/abs/2012.12877).
+    """ DeiT-base distilled model @ 384x384 from paper (https://arxiv.org/abs/2012.12877).
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
-    print("\n\n Loading DEIT BASE 384\n\n")
-    print(f"Pretrained weights: {pretrained}")
+    _logger.debug("Loading DEIT BASE 384")
+    _logger.debug(f"Pretrained weights: {pretrained}")
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     model = _create_vision_transformer(
-        "deit_base_distilled_patch16_384",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
+        'deit_base_distilled_patch16_384', pretrained=pretrained, distilled=True,
+        **model_kwargs)
     return model
 
 
 def passt_s_swa_p16_128_ap476(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=476 SWA \n\n"
-    )
+    """ PaSST pre-trained on AudioSet
+    """
+    _logger.debug("Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=476 SWA")
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     if model_kwargs.get("stride") != (10, 10):
         warnings.warn(
-            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}.")
     model = _create_vision_transformer(
-        "passt_s_swa_p16_128_ap476",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
+        'passt_s_swa_p16_128_ap476', pretrained=pretrained, distilled=True, **model_kwargs)
     return model
 
 
-def passt_s_swa_p16_128_ap476_discogs(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=476 \n\n"
+def maest_swa_p16_128_10s(pretrained=False, **kwargs):
+    """PaSST pre-trained on Discogs data
+    """
+    _logger.debug(
+        "Loading PaSST pre-trained on Discogs Patch 16 stride 10 structured patchout mAP=XXX"
     )
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     if model_kwargs.get("stride") != (10, 10):
@@ -1475,185 +1034,7 @@ def passt_s_swa_p16_128_ap476_discogs(pretrained=False, **kwargs):
     return model
 
 
-def passt_s_swa_p16_128_ap4761(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=4763 SWA \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (10, 10):
-        warnings.warn(
-            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_swa_p16_128_ap4761",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_p16_128_ap472(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (10, 10):
-        warnings.warn(
-            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_p16_128_ap472", pretrained=pretrained, distilled=True, **model_kwargs
-    )
-    return model
-
-
-def passt_s_p16_s12_128_ap470(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 12 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (12, 12):
-        warnings.warn(
-            f"This model was pre-trained with strides {(12, 12)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_p16_s12_128_ap470",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_f128_20sec_p16_s10_ap474_swa(pretrained=False, **kwargs):
-    print(
-        "\n\n Loading PASST TRAINED ON AUDISET with 20 Second time encodings, with STFT hop of 160 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer(
-        "passt-s-f128-20sec-p16-s10-ap474-swa",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_f128_30sec_p16_s10_ap473_swa(pretrained=False, **kwargs):
-    print(
-        "\n\n Loading PASST TRAINED ON AUDISET with 30 Second time encodings, with STFT hop of 160 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer(
-        "passt-s-f128-30sec-p16-s10-ap473-swa",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_swa_p16_s12_128_ap473(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 12 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (12, 12):
-        warnings.warn(
-            f"This model was pre-trained with strides {(12, 12)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_swa_p16_s12_128_ap473",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_p16_s14_128_ap469(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 14 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (14, 14):
-        warnings.warn(
-            f"This model was pre-trained with strides {(14, 14)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_p16_s14_128_ap469",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_swa_p16_s14_128_ap471(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 14 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (14, 14):
-        warnings.warn(
-            f"This model was pre-trained with strides {(14, 14)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_swa_p16_s14_128_ap471",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_swa_p16_s16_128_ap473(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 16 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (16, 16):
-        warnings.warn(
-            f"This model was pre-trained with strides {(16, 16)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_swa_p16_s16_128_ap473",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-def passt_s_p16_s16_128_ap468(pretrained=False, **kwargs):
-    """PaSST pre-trained on AudioSet"""
-    print(
-        "\n\n Loading PaSST pre-trained on AudioSet Patch 16 stride 16 structured patchout mAP=472 \n\n"
-    )
-    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    if model_kwargs.get("stride") != (16, 16):
-        warnings.warn(
-            f"This model was pre-trained with strides {(16, 16)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
-        )
-    model = _create_vision_transformer(
-        "passt_s_p16_s16_128_ap468",
-        pretrained=pretrained,
-        distilled=True,
-        **model_kwargs,
-    )
-    return model
-
-
-
-def fix_embedding_layer(model, embed="freq_embed"):
+def fix_embedding_layer(model, embed="default"):
     if embed == "default":
         return model
     if embed == "overlap":
@@ -1670,19 +1051,19 @@ def lighten_model(model, cut_depth=0, remove_n_blocks=0):
     #     return model
     if cut_depth:
         if cut_depth < 0:
-            print(f"\n Reducing model depth by removing every  {-cut_depth} layer \n\n")
+            _logger.debug(f"Reducing model depth by removing every {-cut_depth} layer")
         else:
-            print(f"\n Reducing model depth by {cut_depth} \n\n")
+            _logger.debug(f"Reducing model depth by {cut_depth}")
             if len(model.blocks) < cut_depth + 2:
                 raise ValueError(
                     f"Cut depth a VIT with {len(model.blocks)} "
                     f"layers should be between 1 and {len(model.blocks) - 2}"
                 )
-        print(f"\n Before Cutting it was  {len(model.blocks)} \n\n")
+        _logger.debug(f"\n Before Cutting it was  {len(model.blocks)} \n\n")
 
         old_blocks = list(model.blocks.children())
         if cut_depth < 0:
-            print(f"cut_depth={cut_depth}")
+            _logger.debug(f"cut_depth={cut_depth}")
             old_blocks = (
                 [old_blocks[0]] + old_blocks[1:-1:-cut_depth] + [old_blocks[-1]]
             )
@@ -1690,7 +1071,7 @@ def lighten_model(model, cut_depth=0, remove_n_blocks=0):
             old_blocks = [old_blocks[0]] + old_blocks[cut_depth + 1 :]
         model.blocks = nn.Sequential(*old_blocks)
 
-        print(f"\n After Cutting it is  {len(model.blocks)} \n\n")
+        _logger.debug(f"After Cutting it is {len(model.blocks)}")
 
     if remove_n_blocks:
         old_blocks = list(model.blocks.children())
@@ -1698,31 +1079,58 @@ def lighten_model(model, cut_depth=0, remove_n_blocks=0):
             old_blocks = old_blocks[: len(old_blocks) - remove_n_blocks]
         model.blocks = nn.Sequential(*old_blocks)
 
-        print(f"\n After Cutting it is  {len(model.blocks)} \n\n")
+        _logger.debug(f"After Cutting it is {len(model.blocks)}")
 
     return model
 
 
-def get_model(
-    arch="passt_s_swa_p16_128_ap476_discogs",
-    pretrained=False,
-    n_classes=527,
-    in_channels=1,
-    fstride=10,
-    tstride=10,
-    input_fdim=128,
-    input_tdim=998,
-    u_patchout=0,
-    s_patchout_t=0,
-    s_patchout_f=0,
-    s_patchout_f_indices=(),
-    s_patchout_f_interleaved=0,
-    s_patchout_t_indices=(),
-    s_patchout_t_interleaved=0,
-    checkpoint="",
-    use_swa=True,
-    load_head=False,
-    distilled_type="mean",
+net_ingredient = Ingredient("net")
+
+
+@net_ingredient.config
+def default_conf():
+    arch="passt_s_swa_p16_128_ap476_discogs"
+    pretrained=False
+    checkpoint=""
+    load_head=False
+    n_classes=400
+    in_channels=1
+    stride_f=10
+    stride_t=10
+    input_f=96
+    input_t=998
+    u_patchout=0
+    s_patchout_t=0
+    s_patchout_f=0
+    s_patchout_f_indices=()
+    s_patchout_f_interleaved=0
+    s_patchout_t_indices=()
+    s_patchout_t_interleaved=0
+    use_swa=True
+    distilled_type="mean"
+
+
+@net_ingredient.capture
+def get_net(
+    arch,
+    pretrained,
+    checkpoint,
+    load_head,
+    n_classes,
+    in_channels,
+    stride_f,
+    stride_t,
+    input_f,
+    input_t,
+    u_patchout,
+    s_patchout_t,
+    s_patchout_f,
+    s_patchout_f_indices,
+    s_patchout_f_interleaved,
+    s_patchout_t_indices,
+    s_patchout_t_interleaved,
+    use_swa,
+    distilled_type,
 ):
     """
     :param arch: Base ViT or Deit architecture
@@ -1741,32 +1149,13 @@ def get_model(
 
     """
     model_func = None
-    input_size = (input_fdim, input_tdim)
-    stride = (fstride, tstride)
+    input_size = (input_f, input_t)
+    stride = (stride_f, stride_t)
+
     if arch == "passt_deit_bd_p16_384":  # base deit
         model_func = deit_base_distilled_patch16_384
     elif arch == "passt_s_swa_p16_128_ap476":  # pretrained
         model_func = passt_s_swa_p16_128_ap476
-    elif arch == "passt_s_swa_p16_128_ap4761":
-        model_func = passt_s_swa_p16_128_ap4761
-    elif arch == "passt_s_p16_128_ap472":
-        model_func = passt_s_p16_128_ap472
-    elif arch == "passt_s_p16_s16_128_ap468":
-        model_func = passt_s_p16_s16_128_ap468
-    elif arch == "passt_s_swa_p16_s16_128_ap473":
-        model_func = passt_s_swa_p16_s16_128_ap473
-    elif arch == "passt_s_swa_p16_s14_128_ap471":
-        model_func = passt_s_swa_p16_s14_128_ap471
-    elif arch == "passt_s_p16_s14_128_ap469":
-        model_func = passt_s_p16_s14_128_ap469
-    elif arch == "passt_s_swa_p16_s12_128_ap473":
-        model_func = passt_s_swa_p16_s12_128_ap473
-    elif arch == "passt_s_p16_s12_128_ap470":
-        model_func = passt_s_p16_s12_128_ap470
-    elif arch == "passt_s_f128_20sec_p16_s10_ap474":
-        model_func = passt_s_f128_20sec_p16_s10_ap474_swa
-    elif arch == "passt_s_f128_30sec_p16_s10_ap473":
-        model_func = passt_s_f128_30sec_p16_s10_ap473_swa
     elif arch == "passt_s_swa_p16_128_ap476_discogs":
         model_func = passt_s_swa_p16_128_ap476_discogs
 
@@ -1812,9 +1201,9 @@ def get_model(
         missing_keys, unexpected_keys = model.load_state_dict(
             model_state_dict, strict=False
         )
-        print(f"{len(missing_keys)} missing keys: ", missing_keys)
-        print(f"{len(unexpected_keys)} unexpected keys: ", unexpected_keys)
+        _logger.debug(f"{len(missing_keys)} missing keys: {missing_keys}")
+        _logger.debug(f"{len(unexpected_keys)} unexpected keys: {unexpected_keys}")
     else:
-        print("Not loading any checkpoint!!")
+        _logger.debug("Not loading any checkpoint!!")
 
     return model

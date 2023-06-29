@@ -244,7 +244,7 @@ def build_model_with_cfg(
     model = (
         model_cls(**kwargs) if model_cfg is None else model_cls(cfg=model_cfg, **kwargs)
     )
-    model.default_cfg = default_cfg
+    model.pretrained_cfg = default_cfg
 
     # For classification models, check class attr, then kwargs, then default to 1k, otherwise 0 for feats
     num_classes_pretrained = (
@@ -252,6 +252,7 @@ def build_model_with_cfg(
         if features
         else getattr(model, "num_classes", kwargs.get("num_classes", 1000))
     )
+
     if pretrained:
         if pretrained_custom_load:
             load_custom_pretrained(model)

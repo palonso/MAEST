@@ -1,0 +1,5 @@
+essentia
+timm
+torchmetrics
+tqdm
+sacred

@@ -4,88 +4,181 @@ from sacred import Ingredient
 def add_configs(ex):
     """
     This functions add generic configuration for the experiments, such as mix-up, architectures, etc...
-    @param ex: Ba3l Experiment
-    @return:
     """
-
-    @ex.named_config
-    def nomixup():
-        "Don't apply mix-up (spectrogram level)."
-        use_mixup = False
-        mixup_alpha = 0.3
-
-    @ex.named_config
-    def mixup():
-        "Apply mix-up (spectrogram level)."
-        use_mixup = True
-        mixup_alpha = 0.3
 
     @ex.named_config
     def mini_train():
         "limit training/validation to 5 batches for debbuging."
         trainer = dict(limit_train_batches=5, limit_val_batches=5)
 
-    @ex.named_config
-    def passt():
-        "use PaSST model"
-        models = {"net": Ingredient("models.passt.model_ing")}
+    #  Experiments from
+    #  EFFICIENT SUPERVISED TRAINING OF AUDIO TRANSFORMERS FOR MUSIC REPRESENTATION LEARNING
+
+    # Section 4.2. Impact of initial weights
+    ########################################
 
     @ex.named_config
-    def passt_s_20sec():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476; time encodings for up to 20 seconds"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
+    def maest_10s_random_weights_pretrain():
+        "time encodings for up to 10 seconds, and random initialization"
+
+        datamodule = {
+            "clip_length": 10
+        }
+
         net = {
-            "arch": "passt_s_f128_20sec_p16_s10_ap474",
-            "fstride": 10,
-            "tstride": 10,
-            "input_tdim": 2000,
+            "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": False,
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
         }
-        dataset = dict(clip_length=20)
 
     @ex.named_config
-    def passt_s_30sec():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476; time encodings for up to 30 seconds"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_f128_30sec_p16_s10_ap473",
-                fstride=10,
-                tstride=10,
-                input_tdim=3000,
-            )
+    def maest_10s_from_deit_pretrain():
+        "time encodings for up to 10 seconds and initializaiton to the DeiT weights"
+
+        datamodule = {
+            "clip_length": 10
         }
-        basedataset = dict(clip_length=20)
+
+        net = {
+            "arch": "passt_deit_bd_p16_384",
+            "pretrained": True,
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
+
+    @ex.named_config
+    def maest_10s_from_passt_pretrain():
+        "time encodings for up to 10 seconds and initializaiton to the PaSST weights"
+
+        datamodule = {
+            "clip_length": 10
+        }
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": True,
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
+
+    @ex.named_config
+    def maest_10s_random_weights_inference():
+        "time encodings for up to 10 seconds, and random initialization"
+
+        datamodule = {
+            "clip_length": 10
+        }
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": False,
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
+
+        inference = {
+            "n_block": 11
+        }
+
+    @ex.named_config
+    def maest_10s_from_deit_inference():
+        "time encodings for up to 10 seconds and initializaiton to the DeiT weights"
+
+        datamodule = {
+            "clip_length": 10
+        }
+
+        net = {
+            "arch": "passt_deit_bd_p16_384",
+            "pretrained": True,
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
+
+        inference = {
+            "n_block": 11
+        }
+
+    @ex.named_config
+    def maest_10s_from_passt_inference():
+        "time encodings for up to 10 seconds and initializaiton to the PaSST weights"
+
+        datamodule = {
+            "clip_length": 10
+        }
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": True,
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
+
+        predict = {
+            "transformer_block": 7
+        }
+
+    # Section 4.3. Effect of the input sequence length
+    ##################################################
 
     @ex.named_config
     def passt_discogs_5sec():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476; time encodings for up to 5 seconds"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                input_tdim=312,
-                s_patchout_t=15,
-                n_patches_t=43,
-                arch="passt_s_swa_p16_128_ap476",
-            )
+        "time encodings for up to 5 seconds"
+
+        datamodule = {
+            "clip_length": 5
         }
-        basedataset = dict(clip_length=5)
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": True,
+            "input_t": 5 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
 
     @ex.named_config
     def passt_discogs_10sec():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476; time encodings for up to 20 seconds"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                input_tdim=625,
-                s_patchout_t=30,
-                n_patches_t=87,
-                arch="passt_s_swa_p16_128_ap476",
-            )
+        "time encodings for up to 10 seconds"
+
+        datamodule = {
+            "clip_length": 10
         }
-        basedataset = dict(clip_length=10)
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476_discogs",
+            "input_t": 10 * 16000 // 256,
+            "s_patchout_t": 30,
+        }
+
+    @ex.named_config
+    def passt_discogs_20sec():
+        "time encodings for up to 20 seconds"
+
+        datamodule = {
+            "clip_length": 20
+        }
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476_discogs",
+            "input_t": 20 * 16000 // 256,
+            "s_patchout_t": 60,
+        }
+
+    @ex.named_config
+    def passt_discogs_30sec():
+        "time encodings for up to 30 seconds"
+
+        datamodule = {
+            "clip_length": 30
+        }
+
+        net = {
+            "arch": "passt_s_swa_p16_128_ap476_discogs",
+            "input_t": 30 * 16000 // 256,
+            "s_patchout_t": 90,
+        }
+
 
     @ex.named_config
     def passt_discogs_10sec_fe():
@@ -104,35 +197,6 @@ def add_configs(ex):
         basedataset = dict(clip_length=10)
 
     @ex.named_config
-    def passt_discogs_20sec():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476; time encodings for up to 20 seconds"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                input_tdim=1250,
-                s_patchout_t=60,
-                n_patches_t=124,
-                arch="passt_s_swa_p16_128_ap476",
-            )
-        }
-        basedataset = dict(clip_length=20)
-
-    @ex.named_config
-    def passt_discogs_30sec():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476; time encodings for up to 30 seconds"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                input_tdim=1875,
-                s_patchout_t=90,
-                arch="passt_s_swa_p16_128_ap476",
-            )
-        }
-        basedataset = dict(clip_length=30)
-
-    @ex.named_config
     def teacher_target():
         "using a teacher classifier"
         # python ex_audioset.py evaluate_only with passt_s_ap476
@@ -149,230 +213,6 @@ def add_configs(ex):
             teacher_target_threshold=0.45,
         )
 
-    @ex.named_config
-    def passt_s_ap476():
-        "use PaSST model pretrained on Audioset (with SWA) ap=476"
-        # python ex_audioset.py evaluate_only with passt_s_ap476
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_swa_p16_128_ap476",
-                fstride=10,
-                tstride=10,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_ap4763():
-        "use PaSST model pretrained on Audioset (with SWA) ap=4763"
-        # test with: python ex_audioset.py evaluate_only with passt_s_ap4763
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_swa_p16_128_ap4763",
-                fstride=10,
-                tstride=10,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_ap472():
-        "use PaSST model pretrained on Audioset (no SWA) ap=472"
-        # test with: python ex_audioset.py evaluate_only with passt_s_ap472
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_p16_128_ap472",
-                fstride=10,
-                tstride=10,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_p16_s16_128_ap468():
-        "use PaSST model pretrained on Audioset (no SWA) ap=468 NO overlap"
-        # test with: python ex_audioset.py evaluate_only with passt_s_p16_s16_128_ap468
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_p16_s16_128_ap468",
-                fstride=16,
-                tstride=16,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_swa_p16_s16_128_ap473():
-        "use PaSST model pretrained on Audioset (SWA) ap=473 NO overlap"
-        # test with: python ex_audioset.py evaluate_only with passt_s_swa_p16_s16_128_ap473
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_swa_p16_s16_128_ap473",
-                fstride=16,
-                tstride=16,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_swa_p16_s14_128_ap471():
-        "use PaSST model pretrained on Audioset stride=14 (SWA) ap=471"
-        # test with: python ex_audioset.py evaluate_only with passt_s_swa_p16_s14_128_ap471
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_swa_p16_s14_128_ap471",
-                fstride=14,
-                tstride=14,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_p16_s14_128_ap469():
-        "use PaSST model pretrained on Audioset stride=14 (No SWA) ap=469"
-        # test with: python ex_audioset.py evaluate_only with passt_s_p16_s14_128_ap469
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_p16_s14_128_ap469",
-                fstride=14,
-                tstride=14,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_swa_p16_s12_128_ap473():
-        "use PaSST model pretrained on Audioset stride=12 (SWA) ap=473"
-        # test with: python ex_audioset.py evaluate_only with passt_s_swa_p16_s12_128_ap473
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_swa_p16_s12_128_ap473",
-                fstride=12,
-                tstride=12,
-            )
-        }
-
-    @ex.named_config
-    def passt_s_p16_s12_128_ap470():
-        "use PaSST model pretrained on Audioset stride=12 (No SWA) ap=4670"
-        # test with: python ex_audioset.py evaluate_only with passt_s_p16_s12_128_ap470
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="passt_s_p16_s12_128_ap470",
-                fstride=12,
-                tstride=12,
-            )
-        }
-
-    @ex.named_config
-    def ensemble_s10():
-        "use ensemble of PaSST models pretrained on Audioset  with S10 mAP=.4864"
-        # test with: python ex_audioset.py evaluate_only with  trainer.precision=16 ensemble_s10
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="ensemble_s10",
-                fstride=None,
-                tstride=None,
-                instance_cmd="get_ensemble_model",
-                # don't call get_model but rather get_ensemble_model
-                arch_list=[
-                    ("passt_s_swa_p16_128_ap476", 10, 10),
-                    ("passt_s_swa_p16_128_ap4761", 10, 10),
-                    ("passt_s_p16_128_ap472", 10, 10),
-                ],
-            )
-        }
-
-    @ex.named_config
-    def ensemble_many():
-        "use ensemble of PaSST models pretrained on Audioset  with different strides mAP=.4956"
-        # test with: python ex_audioset.py evaluate_only with  trainer.precision=16 ensemble_many
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="ensemble_many",
-                fstride=None,
-                tstride=None,
-                instance_cmd="get_ensemble_model",
-                # don't call get_model but rather get_ensemble_model
-                arch_list=[
-                    ("passt_s_swa_p16_128_ap476", 10, 10),
-                    ("passt_s_swa_p16_128_ap4761", 10, 10),
-                    ("passt_s_p16_128_ap472", 10, 10),
-                    ("passt_s_p16_s12_128_ap470", 12, 12),
-                    ("passt_s_swa_p16_s12_128_ap473", 12, 12),
-                    ("passt_s_p16_s14_128_ap469", 14, 14),
-                    ("passt_s_swa_p16_s14_128_ap471", 14, 14),
-                    ("passt_s_swa_p16_s16_128_ap473", 16, 16),
-                    ("passt_s_p16_s16_128_ap468", 16, 16),
-                ],
-            )
-        }
-
-    @ex.named_config
-    def ensemble_4():
-        "use ensemble of PaSST models pretrained on Audioset  with different strides mAP=.4926"
-        # test with: python ex_audioset.py evaluate_only with  trainer.precision=16 ensemble_many
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="ensemble_many",
-                fstride=None,
-                tstride=None,
-                instance_cmd="get_ensemble_model",
-                # don't call get_model but rather get_ensemble_model
-                arch_list=[
-                    ("passt_s_swa_p16_128_ap476", 10, 10),
-                    ("passt_s_swa_p16_s12_128_ap473", 12, 12),
-                    ("passt_s_swa_p16_s14_128_ap471", 14, 14),
-                    ("passt_s_swa_p16_s16_128_ap473", 16, 16),
-                ],
-            )
-        }
-
-    @ex.named_config
-    def ensemble_5():
-        "use ensemble of PaSST models pretrained on Audioset  with different strides mAP=.49459"
-        # test with: python ex_audioset.py evaluate_only with  trainer.precision=16 ensemble_many
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="ensemble_many",
-                fstride=None,
-                tstride=None,
-                instance_cmd="get_ensemble_model",
-                # don't call get_model but rather get_ensemble_model
-                arch_list=[
-                    ("passt_s_swa_p16_128_ap476", 10, 10),
-                    ("passt_s_swa_p16_128_ap4761", 10, 10),
-                    ("passt_s_swa_p16_s12_128_ap473", 12, 12),
-                    ("passt_s_swa_p16_s14_128_ap471", 14, 14),
-                    ("passt_s_swa_p16_s16_128_ap473", 16, 16),
-                ],
-            )
-        }
-
-    @ex.named_config
-    def ensemble_s16_14():
-        "use ensemble of two PaSST models pretrained on Audioset  with stride 16 and 14 mAP=.48579"
-        # test with: python ex_audioset.py evaluate_only with  trainer.precision=16 ensemble_s16_14
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                arch="ensemble_s16",
-                fstride=None,
-                tstride=None,
-                instance_cmd="get_ensemble_model",
-                # don't call get_model but rather get_ensemble_model
-                arch_list=[
-                    ("passt_s_swa_p16_s14_128_ap471", 14, 14),
-                    ("passt_s_swa_p16_s16_128_ap473", 16, 16),
-                ],
-            )
-        }
 
     @ex.named_config
     def passt_discogs5sec_inference():
