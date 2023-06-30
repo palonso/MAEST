@@ -42,13 +42,13 @@ def default_conf():
     timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
 
     trainer = {
-        "max_epochs": 5,
+        "max_epochs": 130,
         "devices": 1,
         "sync_batchnorm": True,
         "precision": "16-mixed",
         "limit_train_batches": None,
         "limit_val_batches": None,
-        "num_sanity_val_steps": -1,
+        "num_sanity_val_steps": 0,
         "log_every_n_steps": 50,
         "reload_dataloaders_every_n_epochs": 1,
         "strategy": "ddp_find_unused_parameters_true",
