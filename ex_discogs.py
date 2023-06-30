@@ -9,7 +9,10 @@ import torch
 import numpy as np
 import lightning.pytorch as pl
 from pytorch_lightning.loggers import CometLogger
+from lightning.pytorch.loggers import TensorBoardLogger
+
 from sacred import Experiment
+from sacred.observers import FileStorageObserver
 
 from torch.nn import functional as F
 from tqdm import tqdm
@@ -29,6 +32,7 @@ ex = Experiment("ex", ingredients=[
     net_ingredient,
     maest_ing,
 ])
+ex.observers.append(FileStorageObserver('exp_logs'))
 _logger = logging.getLogger("ex_discogs")
 
 
@@ -42,11 +46,12 @@ def default_conf():
         "devices": 1,
         "sync_batchnorm": True,
         "precision": "16-mixed",
-        "limit_train_batches": 20,
-        "limit_val_batches": 20,
-        "num_sanity_val_steps": 0,
-        "log_every_n_steps": 100,
+        "limit_train_batches": None,
+        "limit_val_batches": None,
+        "num_sanity_val_steps": -1,
+        "log_every_n_steps": 50,
         "reload_dataloaders_every_n_epochs": 1,
+        "strategy": "ddp_find_unused_parameters_true",
     }
 
     predict = {
@@ -61,10 +66,12 @@ add_configs(ex)
 
 @ex.command
 def main(_run, _config, _log, _rnd, _seed):
-    trainer = pl.Trainer(**_config["trainer"])
+    logger = TensorBoardLogger("exp_logs/", version=_run._id)
+    trainer = pl.Trainer(logger=logger, **_config["trainer"])
 
     module = MAEST()
     data = DiscogsDataModule()
+
 
     trainer.fit(module, data)
     return {"done": True}
