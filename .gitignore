@@ -7,3 +7,5 @@ predictions/*
 
 __pycache__
 *.pyc
+
+*.pk
