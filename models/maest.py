@@ -5,13 +5,13 @@ import lightning.pytorch as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from sacred import Ingredient
+from sklearn import metrics
 
 # from sacred.config_helpers import Ingredient, CMD
 from torch.nn import functional as F
 
 from helpers.mixup import my_mixup
 from helpers.ramp import exp_warmup_linear_down, cosine_cycle
-from helpers.spec_masking import SpecMasking
 from helpers.swa_callback import StochasticWeightAveraging
 from models.passt import get_net
 
@@ -22,7 +22,7 @@ _logger = logging.getLogger("MAEST")
 @maest_ing.config
 def default_conf():
     do_swa = True
-    swa_epoch_start = 2
+    swa_epoch_start = 50
     swa_freq = 5
 
     mixup_alpha = 0.3  # Set to 0 to skip
@@ -144,10 +144,16 @@ class MAEST(pl.LightningModule):
             y = self.all_gather(y).reshape(-1, y.shape[-1])
 
         y = y.cpu().numpy()
+        _logger.debug("end of validation")
+        _logger.debug(f"outputs len: {len(outputs)}")
+
+        _logger.debug(f"y shape: {y.shape}")
 
         for name, net in net_map:
             loss = torch.stack([x[self._join((name, "loss"))] for x in outputs]).mean()
             y_hat = torch.cat([x[self._join((name, "y_hat"))] for x in outputs], dim=0)
+
+            _logger.debug(f"y_hat shape: {y_hat.shape}")
 
             if self.distributed_mode:
                 loss = self.all_gather(loss).reshape(-1, loss.shape[-1])
@@ -157,11 +163,8 @@ class MAEST(pl.LightningModule):
             loss = loss.cpu().numpy().mean()
             y_hat = y_hat.cpu().numpy()
 
-            # ap = metrics.average_precision_score(y, y_hat, average="macro")
-            # roc = metrics.roc_auc_score(y, y_hat, average="macro")
-
-            ap = 0.0
-            roc = 0.0
+            ap = metrics.average_precision_score(y, y_hat, average="macro")
+            roc = metrics.roc_auc_score(y, y_hat, average="macro")
 
             self.log_dict({
                 self._join((stage, "loss", name)): loss,
