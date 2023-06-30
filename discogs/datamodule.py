@@ -25,7 +25,7 @@ _logger = logging.getLogger("datamodule")
 def default_config():
     base_dir = "/data0/palonso/data/discotube30s/"
     base_dir_val = ""  # alternative location for the validation data
-    groundtruth_train = "discogs/gt_val_all_400l_super_clean.pk"
+    groundtruth_train = "discogs/gt_train_all_400l_super_clean.pk"
     groundtruth_val = "discogs/gt_val_all_400l_super_clean.pk"
     groundtruth_test = "discogs/gt_test_all_400l_super_clean.pk"
     # groundtruth_predict = "discogs/gt_train_all_400l_super_clean.pk"
@@ -64,7 +64,7 @@ def default_config():
         "sample_weight_offset": 100,
         "sample_weight_sum": True,
         "sampler_replace": False,
-        "epoch_len": 2000,
+        "epoch_len": 200000,
     }
 
     teacher_student = {
@@ -179,12 +179,11 @@ class DiscogsDataModule(pl.LightningDataModule):
         epoch_len,
         sampler_replace,
     ):
-
-        num_nodes = int(os.environ.get("num_nodes", 1))
-        ddp = int(os.environ.get("DDP", 1))
-        num_nodes = max(ddp, num_nodes)
-        _logger.info(f"num_nodes: {num_nodes}")
-        rank = int(os.environ.get("NODE_RANK", 0))
+        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        if world_size > 1:
+            _logger.info(f"WORLD_SIZE: {world_size}")
+            _logger.info(f"LOCAL_RANK: {local_rank}")
 
         sample_weights = self.get_ft_cls_balanced_sample_weights(groundtruth=groundtruth)
 
@@ -193,8 +192,8 @@ class DiscogsDataModule(pl.LightningDataModule):
                 sample_weights, num_samples=epoch_len, replacement=sampler_replace
             ),
             dataset=range(epoch_len),
-            num_replicas=num_nodes,
-            rank=rank,
+            num_replicas=world_size,
+            rank=local_rank,
         )
 
     @datamodule_ing.capture
