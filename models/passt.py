@@ -1204,6 +1204,6 @@ def get_net(
         _logger.debug(f"{len(missing_keys)} missing keys: {missing_keys}")
         _logger.debug(f"{len(unexpected_keys)} unexpected keys: {unexpected_keys}")
     else:
-        _logger.debug("Not loading any checkpoint!!")
+        _logger.debug("Not loading any local checkpoint!!")
 
     return model
