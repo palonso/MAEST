@@ -2,6 +2,7 @@ import logging
 
 import torch
 import lightning.pytorch as pl
+import numpy as np
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from sacred import Ingredient
@@ -27,8 +28,6 @@ def default_conf():
 
     mixup_alpha = 0.3  # Set to 0 to skip
 
-    distributed_mode = False
-
     optimizer = {
         "lr": 0.00002,  # learning rate
         "adamw": True,
@@ -45,7 +44,7 @@ def default_conf():
 class MAEST(pl.LightningModule):
     @maest_ing.capture
     def __init__(
-        self, do_swa, swa_epoch_start, swa_freq, mixup_alpha, distributed_mode
+        self, do_swa, swa_epoch_start, swa_freq, mixup_alpha, distributed_mode=False,
     ):
         super().__init__()
         self.mixup_alpha = mixup_alpha
@@ -157,12 +156,16 @@ class MAEST(pl.LightningModule):
             _logger.debug(f"y_hat shape: {y_hat.shape}")
 
             if self.distributed_mode:
-                loss = self.all_gather(loss).reshape(-1, loss.shape[-1])
+                loss = self.all_gather(loss)
                 y_hat = self.all_gather(y_hat).reshape(-1, y_hat.shape[-1])
 
             # detach tensors
             loss = loss.cpu().numpy().mean()
             y_hat = y_hat.cpu().numpy()
+
+            samples_per_class = np.sum(y, axis=0)
+            _logger.debug(samples_per_class)
+            _logger.debug(f"n val/test samples: {sum(samples_per_class)}")
 
             ap = metrics.average_precision_score(y, y_hat, average="macro")
             roc = metrics.roc_auc_score(y, y_hat, average="macro")

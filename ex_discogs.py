@@ -70,10 +70,16 @@ add_configs(ex)
 
 @ex.command
 def main(_run, _config, _log, _rnd, _seed):
-    logger = TensorBoardLogger("exp_logs/", version=_run._id)
-    trainer = pl.Trainer(logger=logger, **_config["trainer"])
+    _logger.info(_config)
 
-    module = MAEST()
+    tb_logger = TensorBoardLogger("exp_logs/", version=_run._id)
+    trainer = pl.Trainer(logger=tb_logger, **_config["trainer"])
+
+    distributed_mode = False
+    if _config["trainer"]["devices"] > 1:
+        distributed_mode = True
+
+    module = MAEST(distributed_mode=distributed_mode)
     data = DiscogsDataModule()
 
     trainer.fit(module, data)
