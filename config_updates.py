@@ -60,18 +60,18 @@ def add_configs(ex):
 
     @ex.named_config
     def maest_10s_random_weights_inference():
-        "time encodings for up to 10 seconds, and random initialization"
+        "time encodings for up to 10 seconds, and random initialization (from scratch)"
 
         datamodule = {"clip_length": 10}
 
         net = {
-            "arch": "passt_s_swa_p16_128_ap476",
+            "arch": "discogs-maest-10s-fs-129e",
             "pretrained": False,
             "input_t": 10 * 16000 // 256,
             "s_patchout_t": 30,
         }
 
-        inference = {"n_block": 11}
+        predict = {"transformer_block": 7}
 
     @ex.named_config
     def maest_10s_from_deit_inference():
@@ -80,13 +80,13 @@ def add_configs(ex):
         datamodule = {"clip_length": 10}
 
         net = {
-            "arch": "passt_deit_bd_p16_384",
+            "arch": "discogs-maest-10s-dw-75ee",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
             "s_patchout_t": 30,
         }
 
-        inference = {"n_block": 11}
+        predict = {"transformer_block": 7}
 
     @ex.named_config
     def maest_10s_from_passt_inference():
@@ -95,7 +95,7 @@ def add_configs(ex):
         datamodule = {"clip_length": 10}
 
         net = {
-            "arch": "passt_s_swa_p16_128_ap476",
+            "arch": "discogs-maest-10s-pw-129e",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
             "s_patchout_t": 30,

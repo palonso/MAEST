@@ -27,7 +27,7 @@ from discogs.datamodule import (
 )
 
 ex = Experiment(
-    "ex",
+    "ex_discogs",
     ingredients=[
         dataset_ing,
         datamodule_ing,
@@ -190,12 +190,12 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
 
 
 @ex.command
-def predict_embeddings(_run, _config, _log, _rnd, _seed):
+def extract_embeddings(_run, _config, _log, _rnd, _seed):
     predict(_run, _config, _log, _rnd, _seed, output_name="embeddings")
 
 
 @ex.command
-def predict_logits(_run, _config, _log, _rnd, _seed):
+def extract_logits(_run, _config, _log, _rnd, _seed):
     predict(_run, _config, _log, _rnd, _seed, output_name="logits")
 
 

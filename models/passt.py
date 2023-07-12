@@ -10,7 +10,6 @@ import math
 import logging
 import warnings
 from collections import OrderedDict
-from copy import deepcopy
 from functools import partial
 
 import torch
@@ -19,7 +18,6 @@ import torch.nn.functional as F
 from sacred import Ingredient
 
 from .helpers.vit_helpers import (
-    update_default_cfg_and_kwargs,
     DropPath,
     trunc_normal_,
     build_model_with_cfg,
@@ -73,11 +71,29 @@ default_cfgs = {
         input_size=(3, 384, 384),
         crop_pct=1.0,
     ),
-    "passt_s_swa_p16_128_ap476_discogs": _cfg(
-        url="",
+    "discogs_maest_10s_fs_129e": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e.ckpt",
         mean=IMAGENET_DEFAULT_MEAN,
         std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 96, 625),
+        input_size=(1, 128, 998),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=400,
+    ),
+    "discogs_maest_10s_dw_75e": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e.ckpt",
+        mean=IMAGENET_DEFAULT_MEAN,
+        std=IMAGENET_DEFAULT_STD,
+        input_size=(1, 128, 998),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=400,
+    ),
+    "discogs_maest_10s_pw_129e": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e.ckpt",
+        mean=IMAGENET_DEFAULT_MEAN,
+        std=IMAGENET_DEFAULT_STD,
+        input_size=(1, 128, 998),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
@@ -1036,10 +1052,10 @@ def passt_s_swa_p16_128_ap476(pretrained=False, **kwargs):
     return model
 
 
-def maest_swa_p16_128_10s(pretrained=False, **kwargs):
-    """PaSST pre-trained on Discogs data"""
+def discogs_maest_10s_fs_129e(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
     _logger.debug(
-        "Loading PaSST pre-trained on Discogs Patch 16 stride 10 structured patchout mAP=XXX"
+        "Loading MAEST pre-trained on Discogs and initialized from scratch. Patch 16 stride 10 structured patchout mAP=XXX"
     )
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     if model_kwargs.get("stride") != (10, 10):
@@ -1047,7 +1063,47 @@ def maest_swa_p16_128_10s(pretrained=False, **kwargs):
             f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
         )
     model = _create_vision_transformer(
-        "passt_s_swa_p16_128_ap476_discogs",
+        "discogs_maest_10s_fs_129e",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
+def discogs_maest_10s_pw_129e(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_10s_pw_129e",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
+def discogs_maest_10s_dw_75e(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to DeiT weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_10s_dw_75e",
         pretrained=pretrained,
         distilled=True,
         **model_kwargs,
@@ -1176,10 +1232,16 @@ def get_net(
 
     if arch == "passt_deit_bd_p16_384":  # base deit
         model_func = deit_base_distilled_patch16_384
-    elif arch == "passt_s_swa_p16_128_ap476":  # pretrained
+    elif arch == "passt_s_swa_p16_128_ap476":
         model_func = passt_s_swa_p16_128_ap476
-    elif arch == "passt_s_swa_p16_128_ap476_discogs":
-        model_func = passt_s_swa_p16_128_ap476_discogs
+    elif arch == "discogs-maest-10s-fs-129e":
+        model_func = discogs_maest_10s_fs_129e
+    elif arch == "discogs-maest-10s-pw-129e":
+        model_func = discogs_maest_10s_pw_129e
+    elif arch == "discogs-maest-10s-dw-75e":
+        model_func = discogs_maest_10s_dw_75e
+    else:
+        raise NotImplementedError(f"model {arch} not implemented")
 
     if model_func is None:
         raise RuntimeError(f"Unknown model {arch}")
