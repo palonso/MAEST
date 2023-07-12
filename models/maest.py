@@ -45,12 +45,7 @@ def default_conf():
 class MAEST(pl.LightningModule):
     @maest_ing.capture
     def __init__(
-        self,
-        do_swa,
-        swa_epoch_start,
-        swa_freq,
-        mixup_alpha,
-        distributed_mode
+        self, do_swa, swa_epoch_start, swa_freq, mixup_alpha, distributed_mode
     ):
         super().__init__()
         self.mixup_alpha = mixup_alpha
@@ -65,7 +60,9 @@ class MAEST(pl.LightningModule):
         self.test_outputs = []
 
     def forward(self, batch, transformer_block=-1):
-        return self.net.forward(batch, transformer_block=-1, return_self_attention=False)
+        return self.net.forward(
+            batch, transformer_block=-1, return_self_attention=False
+        )
 
     def training_step(self, batch, batch_idx):
         x, f, y = batch
@@ -86,7 +83,9 @@ class MAEST(pl.LightningModule):
 
         loss = F.binary_cross_entropy_with_logits(y_hat, y)
 
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(
+            "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+        )
         return loss
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = None):
@@ -128,7 +127,9 @@ class MAEST(pl.LightningModule):
         return outputs
 
     def validation_step(self, batch, batch_idx):
-        return self.test_validation_step(batch, batch_idx, self.validation_outputs, "val")
+        return self.test_validation_step(
+            batch, batch_idx, self.validation_outputs, "val"
+        )
 
     def test_step(self, batch, batch_idx):
         return self.test_validation_step(batch, batch_idx, self.test_outputs, "test")
@@ -166,11 +167,13 @@ class MAEST(pl.LightningModule):
             ap = metrics.average_precision_score(y, y_hat, average="macro")
             roc = metrics.roc_auc_score(y, y_hat, average="macro")
 
-            self.log_dict({
-                self._join((stage, "loss", name)): loss,
-                self._join((stage, "ap", name)): ap,
-                self._join((stage, "roc", name)): roc,
-            })
+            self.log_dict(
+                {
+                    self._join((stage, "loss", name)): loss,
+                    self._join((stage, "ap", name)): ap,
+                    self._join((stage, "roc", name)): roc,
+                }
+            )
 
         outputs.clear()
 
@@ -182,20 +185,26 @@ class MAEST(pl.LightningModule):
 
     @staticmethod
     @maest_ing.capture(prefix="optimizer")
-    def get_scheduler_lambda(warm_up_len, ramp_down_start, ramp_down_len, last_lr_value, schedule_mode):
+    def get_scheduler_lambda(
+        warm_up_len, ramp_down_start, ramp_down_len, last_lr_value, schedule_mode
+    ):
         if schedule_mode == "exp_lin":
             return exp_warmup_linear_down(
                 warm_up_len, ramp_down_len, ramp_down_start, last_lr_value
             )
         if schedule_mode == "cos_cyc":
             return cosine_cycle(warm_up_len, ramp_down_start, last_lr_value)
-        raise RuntimeError(f"schedule_mode={schedule_mode} Unknown for a lambda funtion.")
+        raise RuntimeError(
+            f"schedule_mode={schedule_mode} Unknown for a lambda funtion."
+        )
 
     @staticmethod
     @maest_ing.capture(prefix="optimizer")
     def get_lr_scheduler(optimizer, schedule_mode):
         if schedule_mode in {"exp_lin", "cos_cyc"}:
-            return torch.optim.lr_scheduler.LambdaLR(optimizer, MAEST.get_scheduler_lambda())
+            return torch.optim.lr_scheduler.LambdaLR(
+                optimizer, MAEST.get_scheduler_lambda()
+            )
         raise RuntimeError(f"schedule_mode={schedule_mode} Unknown.")
 
     @staticmethod
@@ -212,18 +221,26 @@ class MAEST(pl.LightningModule):
         # (LBFGS it is automatically supported, no need for closure function)
         optimizer = self.get_optimizer(self.parameters())
         # torch.optim.Adam(self.parameters(), lr=self.config.lr)
-        return {"optimizer": optimizer, "lr_scheduler": self.get_lr_scheduler(optimizer)}
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": self.get_lr_scheduler(optimizer),
+        }
 
     def configure_callbacks(self):
         callbacks = []
         monitor = "val_loss"
-        callbacks.append(ModelCheckpoint(monitor=monitor, mode="min",
-                                         filename='{epoch}-{val_loss:.2f}-best'))
+        callbacks.append(
+            ModelCheckpoint(
+                monitor=monitor, mode="min", filename="{epoch}-{val_loss:.2f}-best"
+            )
+        )
         _logger.debug(f"Adding checkpoint monitoring {monitor}")
 
         if self.do_swa:
             callbacks.append(
-                StochasticWeightAveraging(swa_epoch_start=self.swa_epoch_start, swa_freq=self.swa_freq)
+                StochasticWeightAveraging(
+                    swa_epoch_start=self.swa_epoch_start, swa_freq=self.swa_freq
+                )
             )
             _logger.debug("Using swa!")
 
@@ -260,7 +277,14 @@ class TeacherStudentModule(MAEST):
             "tran_loss_teacher": loss_teacher,
         }
 
-        self.log_dict("train_loss", results, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(
+            "train_loss",
+            results,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
         return results
 
     def test_validation_step(self, batch, batch_idx, output_buffer, stage):
@@ -286,10 +310,12 @@ class TeacherStudentModule(MAEST):
 
             output_buffer.append(outputs)
 
-            self.log_dict({
-                self._join((stage, "loss_standard", name)): loss_standard,
-                self._join((stage, "loss_teacher", name)): loss_teacher,
-                self._join((stage, "loss", name)): loss,
-            })
+            self.log_dict(
+                {
+                    self._join((stage, "loss_standard", name)): loss_standard,
+                    self._join((stage, "loss_teacher", name)): loss_teacher,
+                    self._join((stage, "loss", name)): loss,
+                }
+            )
 
         return outputs

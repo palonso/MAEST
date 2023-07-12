@@ -143,8 +143,10 @@ class StochasticWeightAveraging(Callback):
         )
 
     def setup(
-            self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] =
-            None
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        stage: Optional[str] = None,
     ):
         # copy the model before moving it to accelerator device.
         self._average_model = deepcopy(pl_module.net)

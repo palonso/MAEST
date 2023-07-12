@@ -58,9 +58,12 @@ def _cfg(url="", **kwargs):
 
 default_cfgs = {
     "passt_s_swa_p16_128_ap476": _cfg(
-        url='https://github.com/kkoutini/PaSST/releases/download/v0.0.1-audioset/passt-s-f128-p16-s10-ap.476-swa.pt',
-        mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD, input_size=(1, 128, 998), crop_pct=1.0,
-        classifier=('head.1', 'head_dist'),
+        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.1-audioset/passt-s-f128-p16-s10-ap.476-swa.pt",
+        mean=IMAGENET_DEFAULT_MEAN,
+        std=IMAGENET_DEFAULT_STD,
+        input_size=(1, 128, 998),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
         num_classes=527,
     ),
     "deit_base_distilled_patch16_384": _cfg(
@@ -561,7 +564,9 @@ class PaSST(nn.Module):
             _logger.debug("patch_embed shape: {x.shape}")
         # Adding Time/Freq information
         if first_RUN:
-            _logger.debug("self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}")
+            _logger.debug(
+                "self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}"
+            )
         time_new_pos_embed = self.time_new_pos_embed
         if x.shape[-1] < time_new_pos_embed.shape[-1]:
             if self.training:
@@ -573,12 +578,14 @@ class PaSST(nn.Module):
                         f"CUT with randomoffset={toffset} time_new_pos_embed.shape: {time_new_pos_embed.shape}",
                     )
                 time_new_pos_embed = time_new_pos_embed[
-                    :, :, :, toffset: toffset + x.shape[-1]
+                    :, :, :, toffset : toffset + x.shape[-1]
                 ]
             else:
                 time_new_pos_embed = time_new_pos_embed[:, :, :, : x.shape[-1]]
             if first_RUN:
-                _logger.debug(f"CUT time_new_pos_embed.shape: {time_new_pos_embed.shape}")
+                _logger.debug(
+                    f"CUT time_new_pos_embed.shape: {time_new_pos_embed.shape}"
+                )
         else:
             warnings.warn(
                 f"the patches shape:{x.shape} are larger than the expected time encodings {time_new_pos_embed.shape}, x will be cut"
@@ -586,13 +593,17 @@ class PaSST(nn.Module):
             x = x[:, :, :, : time_new_pos_embed.shape[-1]]
         x = x + time_new_pos_embed
         if first_RUN:
-            _logger.debug(f"self.freq_new_pos_embed.shape: {self.freq_new_pos_embed.shape}")
+            _logger.debug(
+                f"self.freq_new_pos_embed.shape: {self.freq_new_pos_embed.shape}"
+            )
         x = x + self.freq_new_pos_embed
 
         # Structured Patchout https://arxiv.org/abs/2110.05069 Section 2.2
         if self.training and self.s_patchout_t:
             if first_RUN:
-                _logger.debug(f"X Before time Patchout of {self.s_patchout_t}: {x.size()}")
+                _logger.debug(
+                    f"X Before time Patchout of {self.s_patchout_t}: {x.size()}"
+                )
             # ([1, 768, 1, 82])
             random_indices = (
                 torch.randperm(T_dim)[: T_dim - self.s_patchout_t].sort().values
@@ -602,7 +613,9 @@ class PaSST(nn.Module):
                 _logger.debug(f"X after time Patchout {x.size()}")
         if self.training and self.s_patchout_f:
             if first_RUN:
-                _logger.debug(f"X Before Freq Patchout of {self.s_patchout_f}: {x.size()}")
+                _logger.debug(
+                    f"X Before Freq Patchout of {self.s_patchout_f}: {x.size()}"
+                )
             # [1, 768, 12, 1]
             random_indices = (
                 torch.randperm(F_dim)[: F_dim - self.s_patchout_f].sort().values
@@ -744,8 +757,9 @@ class PaSST(nn.Module):
         if first_RUN:
             _logger.debug(f"x size: {len(x)}")
 
-        x = self.forward_features(x, transformer_block=-1,
-                                  return_self_attention=return_self_attention)
+        x = self.forward_features(
+            x, transformer_block=-1, return_self_attention=return_self_attention
+        )
 
         if self.distilled_type == "mean":
             features = (x[0] + x[1]) / 2
@@ -988,34 +1002,42 @@ def _create_vision_transformer(variant, pretrained=False, default_cfg=None, **kw
 
 
 def deit_base_distilled_patch16_384(pretrained=False, **kwargs):
-    """ DeiT-base distilled model @ 384x384 from paper (https://arxiv.org/abs/2012.12877).
+    """DeiT-base distilled model @ 384x384 from paper (https://arxiv.org/abs/2012.12877).
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
     _logger.debug("Loading DEIT BASE 384")
     _logger.debug(f"Pretrained weights: {pretrained}")
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     model = _create_vision_transformer(
-        'deit_base_distilled_patch16_384', pretrained=pretrained, distilled=True,
-        **model_kwargs)
+        "deit_base_distilled_patch16_384",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
     return model
 
 
 def passt_s_swa_p16_128_ap476(pretrained=False, **kwargs):
-    """ PaSST pre-trained on AudioSet
-    """
-    _logger.debug("Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=476 SWA")
+    """PaSST pre-trained on AudioSet"""
+    _logger.debug(
+        "Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=476 SWA"
+    )
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     if model_kwargs.get("stride") != (10, 10):
         warnings.warn(
-            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}.")
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
     model = _create_vision_transformer(
-        'passt_s_swa_p16_128_ap476', pretrained=pretrained, distilled=True, **model_kwargs)
+        "passt_s_swa_p16_128_ap476",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
     return model
 
 
 def maest_swa_p16_128_10s(pretrained=False, **kwargs):
-    """PaSST pre-trained on Discogs data
-    """
+    """PaSST pre-trained on Discogs data"""
     _logger.debug(
         "Loading PaSST pre-trained on Discogs Patch 16 stride 10 structured patchout mAP=XXX"
     )
@@ -1089,25 +1111,25 @@ net_ingredient = Ingredient("net")
 
 @net_ingredient.config
 def default_conf():
-    arch="passt_s_swa_p16_128_ap476_discogs"
-    pretrained=False
-    checkpoint=""
-    load_head=False
-    n_classes=400
-    in_channels=1
-    stride_f=10
-    stride_t=10
-    input_f=96
-    input_t=998
-    u_patchout=0
-    s_patchout_t=0
-    s_patchout_f=0
-    s_patchout_f_indices=()
-    s_patchout_f_interleaved=0
-    s_patchout_t_indices=()
-    s_patchout_t_interleaved=0
-    use_swa=True
-    distilled_type="mean"
+    arch = "passt_s_swa_p16_128_ap476_discogs"
+    pretrained = False
+    checkpoint = ""
+    load_head = False
+    n_classes = 400
+    in_channels = 1
+    stride_f = 10
+    stride_t = 10
+    input_f = 96
+    input_t = 998
+    u_patchout = 0
+    s_patchout_t = 0
+    s_patchout_f = 0
+    s_patchout_f_indices = ()
+    s_patchout_f_interleaved = 0
+    s_patchout_t_indices = ()
+    s_patchout_t_interleaved = 0
+    use_swa = True
+    distilled_type = "mean"
 
 
 @net_ingredient.capture
@@ -1185,7 +1207,7 @@ def get_net(
         state_dict = torch.load(checkpoint)["state_dict"]
         model_state_dict = OrderedDict(
             [
-                (key[len(weight_prefix):], value)
+                (key[len(weight_prefix) :], value)
                 for key, value in state_dict.items()
                 if key.startswith(weight_prefix)
             ]

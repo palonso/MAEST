@@ -91,7 +91,7 @@ class DistributedSamplerWrapper(DistributedSampler):
         indices = list(self.sampler)
         if self.epoch == 0:
             _logger.info(f"DistributedSamplerWrapper: {indices[:10]}")
-        indices = indices[self.rank: self.total_size: self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         return iter(indices)
 
 
@@ -185,7 +185,9 @@ class DiscogsDataModule(pl.LightningDataModule):
             _logger.info(f"WORLD_SIZE: {world_size}")
             _logger.info(f"LOCAL_RANK: {local_rank}")
 
-        sample_weights = self.get_ft_cls_balanced_sample_weights(groundtruth=groundtruth)
+        sample_weights = self.get_ft_cls_balanced_sample_weights(
+            groundtruth=groundtruth
+        )
 
         return DistributedSamplerWrapper(
             sampler=WeightedRandomSampler(
@@ -268,7 +270,9 @@ class DiscogsDataModule(pl.LightningDataModule):
         num_workers,
         norm,
     ):
-        ds = DiscogsDatasetExhaustive(groundtruth_test, base_dir, clip_length=clip_length)
+        ds = DiscogsDatasetExhaustive(
+            groundtruth_test, base_dir, clip_length=clip_length
+        )
 
         if norm["do"]:
             ds = PreprocessDataset(ds, self.get_norm_func())

@@ -11,6 +11,8 @@ def add_configs(ex):
         "limit training/validation to 5 batches for debbuging."
         trainer = dict(limit_train_batches=5, limit_val_batches=5)
 
+        datamodule = {"groundtruth_val": "discogs/gt_val_all_400l_super_clean.pk"}
+
     #  Experiments from
     #  EFFICIENT SUPERVISED TRAINING OF AUDIO TRANSFORMERS FOR MUSIC REPRESENTATION LEARNING
 
@@ -21,9 +23,7 @@ def add_configs(ex):
     def maest_10s_random_weights_pretrain():
         "time encodings for up to 10 seconds, and random initialization"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476",
@@ -36,9 +36,7 @@ def add_configs(ex):
     def maest_10s_from_deit_pretrain():
         "time encodings for up to 10 seconds and initializaiton to the DeiT weights"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_deit_bd_p16_384",
@@ -51,9 +49,7 @@ def add_configs(ex):
     def maest_10s_from_passt_pretrain():
         "time encodings for up to 10 seconds and initializaiton to the PaSST weights"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476",
@@ -66,9 +62,7 @@ def add_configs(ex):
     def maest_10s_random_weights_inference():
         "time encodings for up to 10 seconds, and random initialization"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476",
@@ -77,17 +71,13 @@ def add_configs(ex):
             "s_patchout_t": 30,
         }
 
-        inference = {
-            "n_block": 11
-        }
+        inference = {"n_block": 11}
 
     @ex.named_config
     def maest_10s_from_deit_inference():
         "time encodings for up to 10 seconds and initializaiton to the DeiT weights"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_deit_bd_p16_384",
@@ -96,17 +86,13 @@ def add_configs(ex):
             "s_patchout_t": 30,
         }
 
-        inference = {
-            "n_block": 11
-        }
+        inference = {"n_block": 11}
 
     @ex.named_config
     def maest_10s_from_passt_inference():
         "time encodings for up to 10 seconds and initializaiton to the PaSST weights"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476",
@@ -115,9 +101,7 @@ def add_configs(ex):
             "s_patchout_t": 30,
         }
 
-        predict = {
-            "transformer_block": 7
-        }
+        predict = {"transformer_block": 7}
 
     # Section 4.3. Effect of the input sequence length
     ##################################################
@@ -126,9 +110,7 @@ def add_configs(ex):
     def passt_discogs_5sec():
         "time encodings for up to 5 seconds"
 
-        datamodule = {
-            "clip_length": 5
-        }
+        datamodule = {"clip_length": 5}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476",
@@ -141,9 +123,7 @@ def add_configs(ex):
     def passt_discogs_10sec():
         "time encodings for up to 10 seconds"
 
-        datamodule = {
-            "clip_length": 10
-        }
+        datamodule = {"clip_length": 10}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476_discogs",
@@ -155,9 +135,7 @@ def add_configs(ex):
     def passt_discogs_20sec():
         "time encodings for up to 20 seconds"
 
-        datamodule = {
-            "clip_length": 20
-        }
+        datamodule = {"clip_length": 20}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476_discogs",
@@ -169,16 +147,13 @@ def add_configs(ex):
     def passt_discogs_30sec():
         "time encodings for up to 30 seconds"
 
-        datamodule = {
-            "clip_length": 30
-        }
+        datamodule = {"clip_length": 30}
 
         net = {
             "arch": "passt_s_swa_p16_128_ap476_discogs",
             "input_t": 30 * 16000 // 256,
             "s_patchout_t": 90,
         }
-
 
     @ex.named_config
     def passt_discogs_10sec_fe():
@@ -212,7 +187,6 @@ def add_configs(ex):
             teacher_target_base_dir="logits/discogs/30sec/swa/11/",
             teacher_target_threshold=0.45,
         )
-
 
     @ex.named_config
     def passt_discogs5sec_inference():

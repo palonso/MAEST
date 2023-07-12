@@ -72,8 +72,7 @@ class DiscogsDataset(TorchDataset):
             self.dataset_file = None
 
     def __getitem__(self, index):
-        """Load waveform and target of an audio clip.
-        """
+        """Load waveform and target of an audio clip."""
 
         filename = self.filenames[index]
         target = self.groundtruth[filename].astype("float16")
@@ -185,8 +184,7 @@ class DiscogsDatasetTE(DiscogsDataset):
         self.teacher_target_threshold = teacher_target_threshold
 
     def __getitem__(self, index):
-        """Load waveform and target of an audio clip.
-        """
+        """Load waveform and target of an audio clip."""
 
         filename = self.filenames[index]
         target = self.groundtruth[filename].astype("float16")
@@ -202,14 +200,12 @@ class DiscogsDatasetTE(DiscogsDataset):
         teacher_target = expit(teacher_target)
 
         # hard teacher target with a threshold of 0.45
-        hard_teacher_target = (
-            teacher_target > self.teacher_target_threshold
-        ).astype("float16")
+        hard_teacher_target = (teacher_target > self.teacher_target_threshold).astype(
+            "float16"
+        )
         # if no class is activated, set the highest activation
         if not np.sum(hard_teacher_target):
-            hard_teacher_target = np.zeros(
-                hard_teacher_target.shape, dtype="float16"
-            )
+            hard_teacher_target = np.zeros(hard_teacher_target.shape, dtype="float16")
             hard_teacher_target[np.argmax(teacher_target)] = 1.0
 
         return melspectrogram, str(filename), target, hard_teacher_target
@@ -239,7 +235,9 @@ class DiscogsDatasetExhaustive(DiscogsDataset):
             n_bands=n_bands,
         )
         self.hop_size = (
-            self.melspectrogram_size // 2 if half_overlapped_inference else self.melspectrogram_size
+            self.melspectrogram_size // 2
+            if half_overlapped_inference
+            else self.melspectrogram_size
         )
         self.half_overlap = half_overlapped_inference
 
@@ -266,8 +264,7 @@ class DiscogsDatasetExhaustive(DiscogsDataset):
         self.length = len(self.filenames_with_patch)
 
     def __getitem__(self, index):
-        """Load waveform and target of an audio clip.
-        """
+        """Load waveform and target of an audio clip."""
 
         filename, offset = self.filenames_with_patch[index]
         target = self.groundtruth[filename].astype("float16")
@@ -311,8 +308,7 @@ class DiscogsDatasetExhaustiveTE(DiscogsDatasetExhaustive):
         self.teacher_target_threshold = teacher_target_threshold
 
     def __getitem__(self, index):
-        """Load waveform and target of an audio clip.
-        """
+        """Load waveform and target of an audio clip."""
 
         filename, offset = self.filenames_with_patch[index]
         target = self.groundtruth[filename].astype("float16")
@@ -329,14 +325,12 @@ class DiscogsDatasetExhaustiveTE(DiscogsDatasetExhaustive):
         teacher_target = expit(teacher_target)
 
         # hard teacher target with a threshold of 0.45
-        hard_teacher_target = (
-            teacher_target > self.teacher_target_threshold
-        ).astype("float16")
+        hard_teacher_target = (teacher_target > self.teacher_target_threshold).astype(
+            "float16"
+        )
         # if no class is activated, set the highest activation
         if not np.sum(hard_teacher_target):
-            hard_teacher_target = np.zeros(
-                hard_teacher_target.shape, dtype="float16"
-            )
+            hard_teacher_target = np.zeros(hard_teacher_target.shape, dtype="float16")
             hard_teacher_target[np.argmax(teacher_target)] = 1.0
 
         return melspectrogram, str(filename), target, hard_teacher_target
@@ -346,4 +340,3 @@ class DiscogsDatasetExhaustiveTE(DiscogsDatasetExhaustive):
 def print_conf(_config):
     _logger.info(f"Config of {dataset_ing.path}, with id: {id(dataset_ing)}")
     _logger.info(_config)
-

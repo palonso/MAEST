@@ -26,13 +26,16 @@ from discogs.datamodule import (
     datamodule_ing,
 )
 
-ex = Experiment("ex", ingredients=[
-    dataset_ing,
-    datamodule_ing,
-    net_ingredient,
-    maest_ing,
-])
-ex.observers.append(FileStorageObserver('exp_logs'))
+ex = Experiment(
+    "ex",
+    ingredients=[
+        dataset_ing,
+        datamodule_ing,
+        net_ingredient,
+        maest_ing,
+    ],
+)
+ex.observers.append(FileStorageObserver("exp_logs"))
 _logger = logging.getLogger("ex_discogs")
 
 
@@ -43,7 +46,7 @@ def default_conf():
 
     trainer = {
         "max_epochs": 130,
-        "devices": 1,
+        "devices": 4,
         "sync_batchnorm": True,
         "precision": "16-mixed",
         "limit_train_batches": None,
@@ -52,6 +55,7 @@ def default_conf():
         "log_every_n_steps": 50,
         "reload_dataloaders_every_n_epochs": 1,
         "strategy": "ddp_find_unused_parameters_true",
+        "default_root_dir": "exp_logs",
     }
 
     predict = {
@@ -72,14 +76,12 @@ def main(_run, _config, _log, _rnd, _seed):
     module = MAEST()
     data = DiscogsDataModule()
 
-
     trainer.fit(module, data)
     return {"done": True}
 
 
 @ex.command
 def model_speed_test(_run, _config, _log, _rnd, _seed, speed_test_batch_size=100):
-
     modul = MAEST()
     modul = modul.cuda()
     batch_size = speed_test_batch_size
@@ -164,7 +166,9 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
         for po_type in ("indices", "interleaved"):
             if _config["net"][f"s_patchout_{po_dim}_{po_type}"]:
                 removed_bands = "_".join(
-                    np.array(_config["net"][f"s_patchout_{po_dim}_{po_type}"]).astype("str")
+                    np.array(_config["net"][f"s_patchout_{po_dim}_{po_type}"]).astype(
+                        "str"
+                    )
                 )
                 subdir2 += f"_patchout_{po_dim}_{po_type}" + removed_bands
 
