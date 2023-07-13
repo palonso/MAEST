@@ -8,7 +8,6 @@ from datetime import datetime
 import torch
 import numpy as np
 import lightning.pytorch as pl
-from pytorch_lightning.loggers import CometLogger
 from lightning.pytorch.loggers import TensorBoardLogger
 
 from sacred import Experiment
@@ -27,7 +26,7 @@ from discogs.datamodule import (
 )
 
 ex = Experiment(
-    "ex_discogs",
+    "ex_maest",
     ingredients=[
         dataset_ing,
         datamodule_ing,
@@ -36,7 +35,7 @@ ex = Experiment(
     ],
 )
 ex.observers.append(FileStorageObserver("exp_logs"))
-_logger = logging.getLogger("ex_discogs")
+_logger = logging.getLogger("ex_maest")
 
 
 @ex.config
@@ -197,23 +196,6 @@ def extract_embeddings(_run, _config, _log, _rnd, _seed):
 @ex.command
 def extract_logits(_run, _config, _log, _rnd, _seed):
     predict(_run, _config, _log, _rnd, _seed, output_name="logits")
-
-
-@ex.command
-def test(_config):
-    trainer = ex.get_trainer()
-    modul = M(ex)
-    modul.eval()
-
-    if os.environ["NODE_RANK"] == "0":
-        project_name = "discogs_test"
-        trainer.logger = CometLogger(
-            project_name=project_name,
-            api_key=os.environ["COMET_API_KEY"],
-        )
-        trainer.logger.log_hyperparams(_config)
-
-    trainer.test(modul)
 
 
 @ex.command
