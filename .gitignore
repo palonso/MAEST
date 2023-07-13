@@ -1,7 +1,6 @@
-lightning_logs/*
-exp_log/* 
+data_out/*
+exp_out/* 
 
-predictions/*
 
 *.swp
 
