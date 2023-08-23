@@ -12,6 +12,7 @@ import warnings
 from collections import OrderedDict
 from functools import partial
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,6 +23,7 @@ from .helpers.vit_helpers import (
     trunc_normal_,
     build_model_with_cfg,
 )
+from .helpers.melspectrogram_extractor import MelSpectrogramExtractor
 
 _logger = logging.getLogger("passt")
 
@@ -29,6 +31,8 @@ IMAGENET_DEFAULT_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_DEFAULT_STD = (0.229, 0.224, 0.225)
 IMAGENET_INCEPTION_MEAN = (0.5, 0.5, 0.5)
 IMAGENET_INCEPTION_STD = (0.5, 0.5, 0.5)
+DISCOGS_MEAN = 2.06755686098554
+DISCOGS_STD = 1.268292820667291
 
 
 def to_2tuple(x):
@@ -73,27 +77,63 @@ default_cfgs = {
     ),
     "discogs_maest_10s_fs_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e.ckpt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 96, 625),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
     ),
     "discogs_maest_10s_dw_75e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e.ckpt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 96, 625),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
     ),
     "discogs_maest_10s_pw_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e.ckpt",
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD,
-        input_size=(1, 128, 998),
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 96, 625),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=400,
+    ),
+    "discogs_maest_5s_pw_129e": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-5s-pw-129e.ckpt",
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 96, 312),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=400,
+    ),
+    "discogs_maest_20s_pw_129e": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-20s-pw-129e.ckpt",
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 128, 1250),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=400,
+    ),
+    "discogs_maest_30s_pw_129e": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e.ckpt",
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 128, 1875),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=400,
+    ),
+    "discogs_maest_30s_pw_73e-ts": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-73e-ts.ckpt",
+        mean=2.06755686098554,
+        std=1.268292820667291,
+        input_size=(1, 128, 1875),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
@@ -432,6 +472,7 @@ class PaSST(nn.Module):
         super().__init__()
         self.num_classes = num_classes
         self.u_patchout = u_patchout
+        self.img_size = img_size
         self.s_patchout_t = s_patchout_t
         self.s_patchout_f = s_patchout_f
         self.s_patchout_f_indices = s_patchout_f_indices
@@ -443,6 +484,7 @@ class PaSST(nn.Module):
         ) = embed_dim  # num_features for consistency with other models
         self.num_tokens = 2 if distilled else 1
         self.distilled_type = distilled_type
+        self.melspectrogramExtractor = MelSpectrogramExtractor()
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
 
@@ -772,6 +814,24 @@ class PaSST(nn.Module):
         global first_RUN
         if first_RUN:
             _logger.debug(f"x size: {len(x)}")
+
+        if len(x.shape) == 1:
+            # extract melspec from raw audio
+            x = self.melspectrogramExtractor(x)
+            # normalize
+            x = (x - DISCOGS_MEAN) / (DISCOGS_STD * 2)
+
+        if len(x.shape) == 2:
+            # need batching
+            trim = x.shape[1] % self.img_size[1]
+            if trim:
+                x = x[:, :-trim]
+            x = x.reshape(self.img_size[0], 1, -1, self.img_size[1])
+            # cut into equally-sized patches.
+            # Note that the new batch axis needs to be next to the time.
+            # resort axes: batch, channels, freq, time
+            x = np.swapaxes(x, 0, 2)
+            x = torch.Tensor(x)
 
         x = self.forward_features(
             x, transformer_block=-1, return_self_attention=return_self_attention
@@ -1112,6 +1172,86 @@ def discogs_maest_10s_dw_75e(pretrained=False, **kwargs):
     return model
 
 
+def discogs_maest_5s_pw_129e(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_5s_pw_129e",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
+def discogs_maest_20s_pw_129e(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_20s_pw_129e",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
+def discogs_maest_30s_pw_129e(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_30s_pw_129e",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
+def discogs_maest_30s_pw_129e_ts(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_30s_pw_129e-ts",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
 def fix_embedding_layer(model, embed="default"):
     if embed == "default":
         return model
@@ -1167,10 +1307,8 @@ net_ingredient = Ingredient("net")
 
 @net_ingredient.config
 def default_conf():
-    arch = "passt_s_swa_p16_128_ap476_discogs"
+    arch = "passt_s_swa_p16_128_ap476"
     pretrained = False
-    checkpoint = ""
-    load_head = False
     n_classes = 400
     in_channels = 1
     stride_f = 10
@@ -1191,24 +1329,22 @@ def default_conf():
 @net_ingredient.capture
 def get_net(
     arch,
-    pretrained,
-    checkpoint,
-    load_head,
-    n_classes,
-    in_channels,
-    stride_f,
-    stride_t,
-    input_f,
-    input_t,
-    u_patchout,
-    s_patchout_t,
-    s_patchout_f,
-    s_patchout_f_indices,
-    s_patchout_f_interleaved,
-    s_patchout_t_indices,
-    s_patchout_t_interleaved,
-    use_swa,
-    distilled_type,
+    pretrained: bool = True,
+    n_classes: int = 400,
+    in_channels: int = 1,
+    stride_f: int = 10,
+    stride_t: int = 10,
+    input_f: int = 96,
+    input_t: int = 998,
+    u_patchout: int = 0,
+    s_patchout_t: int = 0,
+    s_patchout_f: int = 0,
+    s_patchout_f_indices: tuple = (),
+    s_patchout_f_interleaved: int = 0,
+    s_patchout_t_indices: tuple = (),
+    s_patchout_t_interleaved: int = 0,
+    use_swa: bool = True,
+    distilled_type: str = "mean",
 ):
     """
     :param arch: Base ViT or Deit architecture
@@ -1240,6 +1376,14 @@ def get_net(
         model_func = discogs_maest_10s_pw_129e
     elif arch == "discogs-maest-10s-dw-75e":
         model_func = discogs_maest_10s_dw_75e
+    elif arch == "discogs-maest-5s-pw-129e":
+        model_func = discogs_maest_5s_pw_129e
+    elif arch == "discogs-maest-20s-pw-129e":
+        model_func = discogs_maest_20s_pw_129e
+    elif arch == "discogs-maest-30s-pw-129e":
+        model_func = discogs_maest_30s_pw_129e
+    elif arch == "discogs-maest-30s-pw-73e-ts":
+        model_func = discogs_maest_30s_pw_73e_ts
     else:
         raise NotImplementedError(f"model {arch} not implemented")
 
@@ -1263,31 +1407,6 @@ def get_net(
     model = fix_embedding_layer(model)
     model = lighten_model(model)
 
-    weight_prefix = "net_swa." if use_swa else "net."
-
-    if checkpoint:
-        state_dict = torch.load(checkpoint)["state_dict"]
-        model_state_dict = OrderedDict(
-            [
-                (key[len(weight_prefix) :], value)
-                for key, value in state_dict.items()
-                if key.startswith(weight_prefix)
-            ]
-        )
-        delete = []
-        for key in model_state_dict.keys():
-            # head size may mismatch
-            if "head" in key and not load_head:
-                delete.append(key)
-        for key in delete:
-            del model_state_dict[key]
-
-        missing_keys, unexpected_keys = model.load_state_dict(
-            model_state_dict, strict=False
-        )
-        _logger.debug(f"{len(missing_keys)} missing keys: {missing_keys}")
-        _logger.debug(f"{len(unexpected_keys)} unexpected keys: {unexpected_keys}")
-    else:
-        _logger.debug("Not loading any local checkpoint!!")
+    model.eval()
 
     return model
