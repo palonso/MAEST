@@ -77,8 +77,8 @@ default_cfgs = {
     ),
     "discogs_maest_10s_fs_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 96, 625),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
@@ -86,8 +86,8 @@ default_cfgs = {
     ),
     "discogs_maest_10s_dw_75e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 96, 625),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
@@ -95,8 +95,8 @@ default_cfgs = {
     ),
     "discogs_maest_10s_pw_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 96, 625),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
@@ -104,8 +104,8 @@ default_cfgs = {
     ),
     "discogs_maest_5s_pw_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-5s-pw-129e.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 96, 312),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
@@ -113,8 +113,8 @@ default_cfgs = {
     ),
     "discogs_maest_20s_pw_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-20s-pw-129e.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 128, 1250),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
@@ -122,17 +122,17 @@ default_cfgs = {
     ),
     "discogs_maest_30s_pw_129e": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 128, 1875),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
     ),
-    "discogs_maest_30s_pw_73e-ts": _cfg(
+    "discogs_maest_30s_pw_73e_ts": _cfg(
         url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-73e-ts.ckpt",
-        mean=2.06755686098554,
-        std=1.268292820667291,
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
         input_size=(1, 128, 1875),
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
@@ -1232,7 +1232,7 @@ def discogs_maest_30s_pw_129e(pretrained=False, **kwargs):
     return model
 
 
-def discogs_maest_30s_pw_129e_ts(pretrained=False, **kwargs):
+def discogs_maest_30s_pw_73e_ts(pretrained=False, **kwargs):
     """MAEST pre-trained on Discogs data"""
     _logger.debug(
         "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
@@ -1243,7 +1243,7 @@ def discogs_maest_30s_pw_129e_ts(pretrained=False, **kwargs):
             f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
         )
     model = _create_vision_transformer(
-        "discogs_maest_30s_pw_129e-ts",
+        "discogs_maest_30s_pw_73e_ts",
         pretrained=pretrained,
         distilled=True,
         **model_kwargs,
