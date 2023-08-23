@@ -3,8 +3,7 @@ import logging
 import torch
 import lightning.pytorch as pl
 import numpy as np
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import CometLogger
+from lightning.pytorch.callbacks import ModelCheckpoint
 from sacred import Ingredient
 from sklearn import metrics
 
@@ -44,7 +43,12 @@ def default_conf():
 class MAEST(pl.LightningModule):
     @maest_ing.capture
     def __init__(
-        self, do_swa, swa_epoch_start, swa_freq, mixup_alpha, distributed_mode=False,
+        self,
+        do_swa,
+        swa_epoch_start,
+        swa_freq,
+        mixup_alpha,
+        distributed_mode=False,
     ):
         super().__init__()
         self.mixup_alpha = mixup_alpha
