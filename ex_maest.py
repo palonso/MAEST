@@ -17,8 +17,8 @@ from torch.nn import functional as F
 from tqdm import tqdm
 
 from config_updates import add_configs
-from models.passt import net_ingredient
-from models.maest import MAEST, maest_ing
+from models.maest import maest_ing
+from models.module import Module, module_ing
 from discogs.dataset import dataset_ing
 from discogs.datamodule import (
     DiscogsDataModule,
@@ -30,8 +30,8 @@ ex = Experiment(
     ingredients=[
         dataset_ing,
         datamodule_ing,
-        net_ingredient,
         maest_ing,
+        module_ing,
     ],
 )
 ex.observers.append(FileStorageObserver("exp_logs"))
@@ -78,7 +78,7 @@ def main(_run, _config, _log, _rnd, _seed):
     if _config["trainer"]["devices"] > 1:
         distributed_mode = True
 
-    module = MAEST(distributed_mode=distributed_mode)
+    module = Module(distributed_mode=distributed_mode)
     data = DiscogsDataModule()
 
     trainer.fit(module, data)
@@ -87,7 +87,7 @@ def main(_run, _config, _log, _rnd, _seed):
 
 @ex.command
 def model_speed_test(_run, _config, _log, _rnd, _seed, speed_test_batch_size=100):
-    modul = MAEST()
+    modul = Module()
     modul = modul.cuda()
     batch_size = speed_test_batch_size
     print(f"\nBATCH SIZE : {batch_size}\n")
@@ -144,7 +144,7 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
     _logger.debug(f"extracting output: {output_name}")
 
     trainer = pl.Trainer(**_config["trainer"])
-    maest = MAEST()
+    maest = Module()
     maest.set_prediction_tranformer_block(_config["predict"]["transformer_block"])
     maest.eval()
 

@@ -25,7 +25,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "passt_s_swa_p16_128_ap476",
             "pretrained": False,
             "input_t": 10 * 16000 // 256,
@@ -38,7 +38,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "passt_deit_bd_p16_384",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
@@ -51,7 +51,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "passt_s_swa_p16_128_ap476",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
@@ -64,7 +64,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-10s-fs-129e",
             "pretrained": False,
             "input_t": 10 * 16000 // 256,
@@ -79,7 +79,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-10s-dw-75e",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
@@ -94,7 +94,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-10s-pw-129e",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
@@ -112,7 +112,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 5}
 
-        net = {
+        maest = {
             "arch": "passt_s_swa_p16_128_ap476",
             "pretrained": True,
             "input_t": 5 * 16000 // 256,
@@ -125,7 +125,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "passt_s_swa_p16_128_ap476",
             "input_t": 10 * 16000 // 256,
             "s_patchout_t": 30,
@@ -137,7 +137,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 20}
 
-        net = {
+        maest = {
             "arch": "passt_s_swa_p16_128_ap476",
             "input_t": 20 * 16000 // 256,
             "s_patchout_t": 60,
@@ -149,7 +149,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 30}
 
-        net = {
+        maest = {
             "arch": "passt_s_swa_p16_128_ap476",
             "input_t": 30 * 16000 // 256,
             "s_patchout_t": 90,
@@ -161,7 +161,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 5}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-5s-fs-129e",
             "pretrained": True,
             "input_t": 5 * 16000 // 256,
@@ -176,7 +176,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 10}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-10s-fs-129e",
             "input_t": 10 * 16000 // 256,
             "s_patchout_t": 30,
@@ -190,7 +190,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 20}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-20s-fs-129e",
             "input_t": 20 * 16000 // 256,
             "s_patchout_t": 60,
@@ -204,7 +204,7 @@ def add_configs(ex):
 
         datamodule = {"clip_length": 30}
 
-        net = {
+        maest = {
             "arch": "discogs-maest-30s-fs-129e",
             "input_t": 30 * 16000 // 256,
             "s_patchout_t": 90,
