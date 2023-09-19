@@ -179,12 +179,12 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
     # get ouptut directory
     subdir1 = str(_config["datamodule"]["clip_length"]) + "sec"
 
-    subdir2 = "swa" if _config["net"]["use_swa"] else "no_swa"
+    subdir2 = ""
     for po_dim in ("f", "t"):
         for po_type in ("indices", "interleaved"):
-            if _config["net"][f"s_patchout_{po_dim}_{po_type}"]:
+            if _config["maest"][f"s_patchout_{po_dim}_{po_type}"]:
                 removed_bands = "_".join(
-                    np.array(_config["net"][f"s_patchout_{po_dim}_{po_type}"]).astype(
+                    np.array(_config["maest"][f"s_patchout_{po_dim}_{po_type}"]).astype(
                         "str"
                     )
                 )
