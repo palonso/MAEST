@@ -45,7 +45,7 @@ def default_conf():
 
     trainer = {
         "max_epochs": 130,
-        "devices": 4,
+        "devices": 1,
         "sync_batchnorm": True,
         "precision": "16-mixed",
         "limit_train_batches": None,
