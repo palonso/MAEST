@@ -19,6 +19,7 @@ def add_configs(ex):
     # Section 4.2. Impact of initial weights
     ########################################
 
+    # Pretraining settings
     @ex.named_config
     def maest_10s_random_weights_pretrain():
         "time encodings for up to 10 seconds, and random initialization"
@@ -57,6 +58,8 @@ def add_configs(ex):
             "input_t": 10 * 16000 // 256,
             "s_patchout_t": 30,
         }
+
+    # Inference settings
 
     @ex.named_config
     def maest_10s_random_weights_inference():
@@ -106,6 +109,8 @@ def add_configs(ex):
     # Section 4.3. Effect of the input sequence length
     ##################################################
 
+    # Pretraining settings
+
     @ex.named_config
     def passt_discogs_5sec_pretrain():
         "time encodings for up to 5 seconds"
@@ -154,6 +159,8 @@ def add_configs(ex):
             "input_t": 30 * 16000 // 256,
             "s_patchout_t": 90,
         }
+
+    # Inference settings
 
     @ex.named_config
     def passt_discogs_5sec_inference():
@@ -212,21 +219,28 @@ def add_configs(ex):
 
         predict = {"transformer_block": 7}
 
+    # Teacher/student setup (unreleased experiment due to uncertain results).
+
     @ex.named_config
-    def teacher_target():
+    def maest_30s_teacher_student_pretrain():
+        "time encodings for up to 30 seconds"
         "using a teacher classifier"
-        models = {
-            "net": Ingredient(
-                "models.passt.model_ing",
-                distilled_type="separated",
-                s_patchout_t=90,
-            )
+
+        datamodule = {
+            "batch_size_train": 4,
+            "clip_length": 30,
+            "teacher_student": {
+                "do": True,
+                "teacher_target_base_dir": "/home/palonso/reps/PaSST/logits/discogs/30sec/swa/11/",
+            }
         }
-        basedataset = dict(
-            teacher_target=True,
-            teacher_target_base_dir="logits/discogs/30sec/swa/11/",
-            teacher_target_threshold=0.45,
-        )
+
+        maest = {
+            "arch": "passt_s_swa_p16_128_ap476",
+            "input_t": 30 * 16000 // 256,
+            "s_patchout_t": 90,
+            "distilled_type": "separated",
+        }
 
     # Downstream evaluation pipeline
     ################################

@@ -14,7 +14,7 @@ from sacred import Ingredient
 
 from helpers.audiodatasets import PreprocessDataset
 from helpers.spec_masking import SpecMasking
-from .dataset import DiscogsDataset, DiscogsDatasetExhaustive
+from .dataset import DiscogsDataset, DiscogsDatasetTS, DiscogsDatasetExhaustive
 
 
 datamodule_ing = Ingredient("datamodule")
@@ -68,7 +68,7 @@ def default_config():
     }
 
     teacher_student = {
-        "teacher_target": False,
+        "do": False,
         "teacher_target_base_dir": "",
         "teacher_target_threshold": 0.45,
     }
@@ -124,10 +124,12 @@ class DiscogsDataModule(pl.LightningDataModule):
         _logger.info("normalizing...")
 
         def norm_func(b):
-            x, f, y = b
+            b = list(b)
+            x = b[0]
             x = (x - norm_mean) / (norm_std * 2)
+            b[0] = x
 
-            return x, f, y
+            return tuple(b)
 
         return norm_func
 
@@ -135,11 +137,13 @@ class DiscogsDataModule(pl.LightningDataModule):
         _logger.info("masking...")
 
         def masking_func(b):
-            x, f, y = b
+            b = list(b)
+            x = b[0]
             x = torch.as_tensor(x)
             self.spec_masking.compute(x)
+            b[0] = x
 
-            return x, f, y
+            return tuple(b)
 
         return masking_func
 
@@ -209,12 +213,22 @@ class DiscogsDataModule(pl.LightningDataModule):
         norm,
         roll,
         masking,
+        teacher_student,
     ):
-        ds = DiscogsDataset(
-            groundtruth_train,
-            base_dir=base_dir,
-            clip_length=clip_length,
-        )
+        if teacher_student["do"]:
+            ds = DiscogsDatasetTS(
+                groundtruth_train,
+                base_dir=base_dir,
+                clip_length=clip_length,
+                teacher_target_base_dir=teacher_student["teacher_target_base_dir"],
+                teacher_target_threshold=teacher_student["teacher_target_threshold"],
+            )
+        else:
+            ds = DiscogsDataset(
+                groundtruth_train,
+                base_dir=base_dir,
+                clip_length=clip_length,
+            )
 
         if norm["do"]:
             ds = PreprocessDataset(ds, self.get_norm_func())

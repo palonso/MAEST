@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from config_updates import add_configs
 from models.maest import maest_ing
-from models.module import Module, module_ing
+from models.module import Module, TeacherStudentModule, module_ing
 from discogs.dataset import dataset_ing
 from discogs.datamodule import (
     DiscogsDataModule,
@@ -78,7 +78,11 @@ def main(_run, _config, _log, _rnd, _seed):
     if _config["trainer"]["devices"] > 1:
         distributed_mode = True
 
-    module = Module(distributed_mode=distributed_mode)
+    if _config["datamodule"]["teacher_student"]["do"]:
+        module = TeacherStudentModule(distributed_mode=distributed_mode)
+    else:
+        module = Module(distributed_mode=distributed_mode)
+
     data = DiscogsDataModule()
 
     trainer.fit(module, data)

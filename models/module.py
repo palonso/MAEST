@@ -285,14 +285,13 @@ class TeacherStudentModule(Module):
         }
 
         self.log_dict(
-            "train_loss",
             results,
             on_step=True,
             on_epoch=True,
             prog_bar=True,
             logger=True,
         )
-        return results
+        return loss
 
     def test_validation_step(self, batch, batch_idx, output_buffer, stage):
         x, f, y, y_teacher = batch

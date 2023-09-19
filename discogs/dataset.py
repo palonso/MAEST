@@ -145,7 +145,7 @@ class DiscogsDataset(TorchDataset):
         return melspectrogram
 
 
-class DiscogsDatasetTE(DiscogsDataset):
+class DiscogsDatasetTS(DiscogsDataset):
     @dataset_ing.capture
     def __init__(
         self,
@@ -155,7 +155,6 @@ class DiscogsDatasetTE(DiscogsDataset):
         clip_length,
         hop_size,
         n_bands,
-        teacher_target,
         teacher_target_base_dir,
         teacher_target_threshold,
     ):
@@ -168,7 +167,6 @@ class DiscogsDatasetTE(DiscogsDataset):
             n_bands=n_bands,
         )
 
-        self.teacher_target = teacher_target
         self.teacher_target_base_dir = teacher_target_base_dir
         self.teacher_target_threshold = teacher_target_threshold
 
@@ -264,7 +262,7 @@ class DiscogsDatasetExhaustive(DiscogsDataset):
         return melspectrogram, str(filename), target
 
 
-class DiscogsDatasetExhaustiveTE(DiscogsDatasetExhaustive):
+class DiscogsDatasetExhaustiveTS(DiscogsDatasetExhaustive):
     @dataset_ing.capture
     def __init__(
         self,
