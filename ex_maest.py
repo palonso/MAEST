@@ -86,6 +86,19 @@ def main(_run, _config, _log, _rnd, _seed):
 
 
 @ex.command
+def test(_run, _config, _log, _rnd, _seed):
+    trainer = pl.Trainer(**_config["trainer"])
+
+    module = Module()
+    module.do_swa = False
+
+    data = DiscogsDataModule()
+
+    trainer.test(module, data)
+    return {"done": True}
+
+
+@ex.command
 def model_speed_test(_run, _config, _log, _rnd, _seed, speed_test_batch_size=100):
     modul = Module()
     modul = modul.cuda()
