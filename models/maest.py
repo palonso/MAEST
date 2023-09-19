@@ -484,7 +484,7 @@ class MAEST(nn.Module):
         ) = embed_dim  # num_features for consistency with other models
         self.num_tokens = 2 if distilled else 1
         self.distilled_type = distilled_type
-        self.melspectrogramExtractor = MelSpectrogramExtractor()
+        self.melspectrogram_extractor = None
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
 
@@ -567,6 +567,9 @@ class MAEST(nn.Module):
             )
 
         self.init_weights(weight_init)
+
+    def init_melspectrogram_extractor(self):
+        self.melspectrogram_extractor = MelSpectrogramExtractor()
 
     def init_weights(self, mode=""):
         assert mode in ("jax", "jax_nlhb", "nlhb", "")
@@ -816,8 +819,13 @@ class MAEST(nn.Module):
             _logger.debug(f"x size: {len(x)}")
 
         if len(x.shape) == 1:
+            _logger.debug("extracting melspec")
+            if not self.melspectrogram_extractor:
+                _logger.debug("initializing melspectrogram extractor")
+                self.init_melspectrogram_extractor()
+
             # extract melspec from raw audio
-            x = self.melspectrogramExtractor(x)
+            x = self.melspectrogram_extractor(x)
             # normalize
             x = (x - DISCOGS_MEAN) / (DISCOGS_STD * 2)
 
