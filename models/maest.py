@@ -1090,7 +1090,7 @@ def deit_base_distilled_patch16_384(pretrained=False, **kwargs):
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 998)
 
     _logger.debug("Loading DEIT BASE 384")
@@ -1111,7 +1111,7 @@ def passt_s_swa_p16_128_ap476(pretrained=False, **kwargs):
         "Loading PaSST pre-trained on AudioSet Patch 16 stride 10 structured patchout mAP=476 SWA"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 998)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1134,7 +1134,7 @@ def discogs_maest_10s_fs_129e(pretrained=False, **kwargs):
         "Loading MAEST pre-trained on Discogs and initialized from scratch. Patch 16 stride 10 structured patchout mAP=XXX"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 625)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1158,7 +1158,7 @@ def discogs_maest_10s_pw_129e(pretrained=False, **kwargs):
         "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 625)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1182,7 +1182,7 @@ def discogs_maest_10s_dw_75e(pretrained=False, **kwargs):
         "Loading MAEST pre-trained on Discogs and initialized to DeiT weights. Patch 16 stride 10 structured patchout mAP=XXX"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 625)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1206,7 +1206,7 @@ def discogs_maest_5s_pw_129e(pretrained=False, **kwargs):
         "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 312)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1230,7 +1230,7 @@ def discogs_maest_20s_pw_129e(pretrained=False, **kwargs):
         "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 1250)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1254,7 +1254,7 @@ def discogs_maest_30s_pw_129e(pretrained=False, **kwargs):
         "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
     )
 
-    if not kwargs["img_size"][0]:
+    if not kwargs["img_size"][1]:
         kwargs["img_size"] = (kwargs["img_size"][0], 1875)
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
@@ -1366,7 +1366,6 @@ def default_conf():
     s_patchout_f_interleaved = 0
     s_patchout_t_indices = ()
     s_patchout_t_interleaved = 0
-    use_swa = True
     distilled_type = "mean"
 
 
@@ -1387,7 +1386,6 @@ def maest(
     s_patchout_f_interleaved: int = 0,
     s_patchout_t_indices: tuple = (),
     s_patchout_t_interleaved: int = 0,
-    use_swa: bool = True,
     distilled_type: str = "mean",
 ):
     """
