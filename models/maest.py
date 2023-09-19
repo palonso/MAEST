@@ -24,6 +24,7 @@ from .helpers.vit_helpers import (
     build_model_with_cfg,
 )
 from .helpers.melspectrogram_extractor import MelSpectrogramExtractor
+from .discogs_labels import discogs_labels
 
 _logger = logging.getLogger("MAEST")
 
@@ -487,6 +488,7 @@ class MAEST(nn.Module):
         self.melspectrogram_extractor = None
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
+        self.labels = discogs_labels
 
         self.patch_embed = embed_layer(
             img_size=img_size,
@@ -874,6 +876,12 @@ class MAEST(nn.Module):
         if first_RUN:
             _logger.debug(f"head size: {x.size()}")
         return x, features
+
+    def predict_labels(self, x):
+        logits = self.forward(x)[0]
+        activations = nn.functional.softmax(logits, dim=-1)
+        activations = torch.mean(activations, dim=0)
+        return activations.detach().cpu().numpy(), self.labels
 
 
 def _init_vit_weights(
