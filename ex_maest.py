@@ -157,13 +157,13 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
     _logger.debug(f"extracting output: {output_name}")
 
     trainer = pl.Trainer(**_config["trainer"])
-    maest = Module()
-    maest.set_prediction_tranformer_block(_config["predict"]["transformer_block"])
-    maest.eval()
+    module = Module()
+    module.set_prediction_tranformer_block(_config["predict"]["transformer_block"])
+    module.eval()
 
     data = DiscogsDataModule()
 
-    outputs = trainer.predict(maest, data)
+    outputs = trainer.predict(module, data)
 
     filenames = list(chain.from_iterable([x["filename"] for x in outputs]))
     _logger.debug(f"n filenames: {len(filenames)}")
