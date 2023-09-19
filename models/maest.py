@@ -76,7 +76,7 @@ default_cfgs = {
         crop_pct=1.0,
     ),
     "discogs_maest_10s_fs_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 625),
@@ -85,7 +85,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_10s_dw_75e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 625),
@@ -94,7 +94,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_10s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 625),
@@ -103,7 +103,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_5s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-5s-pw-129e.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-5s-pw-129e-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 312),
@@ -112,7 +112,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_20s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-20s-pw-129e.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-20s-pw-129e-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1250),
@@ -121,7 +121,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_30s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1875),
@@ -130,7 +130,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_30s_pw_73e_ts": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-73e-ts.ckpt",
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-73e-ts-swa.ckpt",
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1875),
