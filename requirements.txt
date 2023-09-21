@@ -1,5 +1,8 @@
-essentia
-timm
-torchmetrics
-tqdm
-sacred
+essentia==2.1b6.dev1034
+timm~=0.9
+torchmetrics~=0.11.4
+tqdm~=4.65
+sacred~=0.8.4
+lightning~=2.0.3
+scikit-learn~=1.2.2
+tensorboard~=2.13.0
