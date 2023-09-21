@@ -59,7 +59,7 @@ def default_conf():
 
     predict = {
         "transformer_block": 11,
-        "out_dir": "predictions",
+        "out_dir": "exp_out/",
     }
 
 
