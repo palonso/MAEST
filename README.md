@@ -89,7 +89,7 @@ Due to copyright limitations, we don't share our pre-training dataset (Discogs20
 repository.
 To generate your custom pre-training dataset:
 
-1. Pre-extract mel-spectrograms our your fovourite representatioe for the dataset. As an example, check the [MagnaTagATune's pre-processing](datasets/mtt/preprocess.py).
+1. Pre-extract mel-spectrograms (or your fovourite representation) for the dataset. As an example, check the [MagnaTagATune's pre-processing](datasets/mtt/preprocess.py).
 
 2. Generate groundtruth files. We use binary pickle files that store the groundtruth as a dictionary
    `"path" : (labels tuple)`. Check the [MagnaTagATune training groundtruth file](datasets/mtt/groundtruth-train.pk) as an example.
@@ -101,21 +101,20 @@ python ex_maest.py maest_discogos_30s_pretrain with \
     datamodule.groundtruth_train=my_dataset/groundtruth-train.pk \
     datamodule.groundtruth_val=my_dataset/groundtruth-val.pk \
     datamodule.groundtruth_test=my_dataset/groundtruth-test.pk \
-    datamodule.base_dir =my/data/dir/
+    datamodule.base_dir=my/data/dir/
 ```
 
-Do not hesitate to  contact us for any further question or clarification related to the MAEST pre-training.
+In case more detail related to this stage is required, do not hesitate to contact us for any further question or clarification!
 
 ## Inference
 
 We provide a number of options to extract embeddings from the pre-trained MAEST models presented in
 the paper:
 
-- `extract_embeddings`: which retuns a [3, 768] vector with the embeddings for each audio file in
+- `extract_embeddings`: retuns a [3, 768] vector with the embeddings for each audio file in
   the `predict` dataset. The three dimensions of the first axis correspond to the CLS token, the
   DIST token and the average of the rest of tokens (see Section 4.1 from the paper). 
-- `extract_logits`: that can be used in a teacher student setup, or transformed into label
-  predictions by applying a `Sigmoid` function.
+- `extract_logits`: returns logits that can be used in the teacher student setup, or transformed into label predictions by applying a `Sigmoid` function.
 
 Each pre-training configuration has its inference version. For example, to extract embeddings
 with MAEST trained on 10s patches with random weight initialization do:
@@ -152,7 +151,7 @@ python ex_maest.py extract_embeddings with maest_30s_from_passt_infer target_mtt
 python ex_tl.py with target_mtt_tl
 ```
 
-## Using MAEST in your code:
+## Using MAEST in your code
 
 MAEST pre-trained models can be loaded in Python both for training and for inference:
 
@@ -165,15 +164,15 @@ logits, embeddings = model(waveform)
 
 The following `arch` values are supported:
 
-    - `discogs-maest-10s-fs-129e`
-    - `discogs-maest-10s-pw-129e`
-    - `discogs-maest-10s-dw-75e`
-    - `discogs-maest-5s-pw-129e`
-    - `discogs-maest-20s-pw-129e`
-    - `discogs-maest-30s-pw-129e`
-    - `discogs-maest-30s-pw-73e-ts`
+- `discogs-maest-10s-fs-129e`
+- `discogs-maest-10s-pw-129e`
+- `discogs-maest-10s-dw-75e`
+- `discogs-maest-5s-pw-129e`
+- `discogs-maest-20s-pw-129e`
+- `discogs-maest-30s-pw-129e`
+- `discogs-maest-30s-pw-73e-ts`
 
-Additionally, an auxiliary function `predict_labels` applies a sigmoid activation, averages the predictions along the time axes and returns a vectors with the labels for conviniece.
+Additionally, `predict_labels()` is an auxiliry function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for conviniece.
 
 ```python
 from models.maest import maest
@@ -183,7 +182,8 @@ activations, labels = model.predict_labels(data)
 ```
 
 # Citing
-If you are planning to use MAEST as part of your research, please cite the following work:
+
+If you are going to use MAEST as part of your research, please consider citing the following work:
 
 ```
     @inproceedings{alonso2023Efficient,
