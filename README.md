@@ -15,8 +15,7 @@ We recommend using the [Conda](https://docs.conda.io) package manager to setup t
 1. Create a conda environment:
 
 ```
-conda create -n MAEST python=3.10
-conda activate MAEST
+conda create -n MAEST python=3.10 -y && conda activate MAEST
 ```
 
 2. Install torch 2.0:
@@ -33,13 +32,16 @@ pip install -r requirements.txt
 
 # Usage
 
-We use [Sacred]() to run, configure an log our experiments. 
+We use [Sacred](https://github.com/IDSIA/sacred) to run, configure an log our experiments. 
 The different routines can be run with Sacred commands, and many experiment options can be diretly
 configure from the command line.
 
+The output logs are stored in `exp_logs/`, and `exp_logs/lighting_logs/` contains
+[TensorBoard](https://www.tensorflow.org/tensorboard) tracking of the experiments.
+
 ## Running the pre-training experiments
 
-The following script will run the pre-training routine.
+The following script runs the pre-training routine:
 
 ```
 python ex_maest.py
@@ -66,16 +68,13 @@ python ex_maest.py with maest_10s_from_passt_pretrain
 ##################################################
 
 # time encodings for up to 5 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_discogs_5sec_pretrain
-
-# time encodings for up to 10 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_discogs_10sec_pretrain
+python ex_maest.py with maest_5sec_from_passt_pretrain
 
 # time encodings for up to 20 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_discogs_20sec_pretrain
+python ex_maest.py with maest_20sec_from_passt_pretrain
 
 # time encodings for up to 30 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_discogs_30sec_pretrain
+python ex_maest.py with maest_30sec_from_passt_pretrain
 
 
 # Teacher student setup (requires extracting logits from a pretrained model)
@@ -88,13 +87,12 @@ python ex_maest.py with maest_30s_teacher_student_pretrain
 
 Due to copyright limitations, we don't share our pre-training dataset (Discogs20) in this
 repository.
-To generate a new pre-training dataset:
+To generate your custom pre-training dataset:
 
-1. Pre-extract mel-spectrogram representation for the input dataset similar to the process done in
-   the [MagnaTagATune example](datasets/mtt/preprocess.py).
+1. Pre-extract mel-spectrograms our your fovourite representatioe for the dataset. As an example, check the [MagnaTagATune's pre-processing](datasets/mtt/preprocess.py).
 
 2. Generate groundtruth files. We use binary pickle files that store the groundtruth as a dictionary
-   `"path" : (labels tuple)`. Check the [MagnaTagATune training groundtruth file](dataset/mtt/groundtruth-train.pk) as an example.
+   `"path" : (labels tuple)`. Check the [MagnaTagATune training groundtruth file](datasets/mtt/groundtruth-train.pk) as an example.
 
 3. Update the configuration related to the groundtruth files. For example:
 
@@ -110,16 +108,17 @@ Do not hesitate to  contact us for any further question or clarification related
 
 ## Inference
 
-We provide a number of option to extract embeddings from the pre-trained models:
+We provide a number of options to extract embeddings from the pre-trained MAEST models presented in
+the paper:
 
 - `extract_embeddings`: which retuns a [3, 768] vector with the embeddings for each audio file in
   the `predict` dataset. The three dimensions of the first axis correspond to the CLS token, the
-  DIST token and the average of the rest of tokensi (see Section 4.1 from the paper). 
+  DIST token and the average of the rest of tokens (see Section 4.1 from the paper). 
 - `extract_logits`: that can be used in a teacher student setup, or transformed into label
   predictions by applying a `Sigmoid` function.
 
-Each pre-training configuration has its inference correspondence. For example, to extract embeddings
-with MAEST trained on 10s patches with random weights initialization do:
+Each pre-training configuration has its inference version. For example, to extract embeddings
+with MAEST trained on 10s patches with random weight initialization do:
 
 ```
 python ex_maest.py extract_embeddings with maest_10s_random_weights_inference
@@ -128,12 +127,12 @@ python ex_maest.py extract_embeddings with maest_10s_random_weights_inference
 The transformer block used to extract the embeddings can be configured as follows:
 
 ```
-python ex_maest.py extract_embeddings with maest_10s_random_weights_inference inference.transformer_block=11
+python ex_maest.py extract_embeddings with maest_10s_random_weights_inference predict.transformer_block=11
 ```
 
 ## Downstream evaluation
 
-The downstream evaluation required thw following steps:
+The downstream evaluation requires the following steps:
 
 1. Dataset pre-processing. For example, for the MagnaTagATune:
 
@@ -153,6 +152,35 @@ python ex_maest.py extract_embeddings with maest_30s_from_passt_infer target_mtt
 python ex_tl.py with target_mtt_tl
 ```
 
+## Using MAEST in your code:
+
+MAEST pre-trained models can be loaded in Python both for training and for inference:
+
+```python
+from models.maest import maest
+model = maest(arch="discogs-maest-10s-fs-129e")
+
+logits, embeddings = model(waveform)
+```
+
+The following `arch` values are supported:
+
+    - `discogs-maest-10s-fs-129e`
+    - `discogs-maest-10s-pw-129e`
+    - `discogs-maest-10s-dw-75e`
+    - `discogs-maest-5s-pw-129e`
+    - `discogs-maest-20s-pw-129e`
+    - `discogs-maest-30s-pw-129e`
+    - `discogs-maest-30s-pw-73e-ts`
+
+Additionally, an auxiliary function `predict_labels` applies a sigmoid activation, averages the predictions along the time axes and returns a vectors with the labels for conviniece.
+
+```python
+from models.maest import maest
+model = maest(arch="discogs-maest-10s-fs-129e")
+
+activations, labels = model.predict_labels(data)
+```
 
 # Citing
 If you are planning to use MAEST as part of your research, please cite the following work:

@@ -112,7 +112,7 @@ def add_configs(ex):
     # Pretraining settings
 
     @ex.named_config
-    def passt_discogs_5sec_pretrain():
+    def maest_5s_from_passt_pretrain():
         "time encodings for up to 5 seconds"
 
         datamodule = {"clip_length": 5}
@@ -125,19 +125,7 @@ def add_configs(ex):
         }
 
     @ex.named_config
-    def passt_discogs_10sec_pretrain():
-        "time encodings for up to 10 seconds"
-
-        datamodule = {"clip_length": 10}
-
-        maest = {
-            "arch": "passt_s_swa_p16_128_ap476",
-            "input_t": 10 * 16000 // 256,
-            "s_patchout_t": 30,
-        }
-
-    @ex.named_config
-    def passt_discogs_20sec_pretrain():
+    def maest_20s_from_passt_pretrain():
         "time encodings for up to 20 seconds"
 
         datamodule = {"clip_length": 20}
@@ -149,7 +137,7 @@ def add_configs(ex):
         }
 
     @ex.named_config
-    def passt_discogs_30sec_pretrain():
+    def maest_30s_from_past_pretrain():
         "time encodings for up to 30 seconds"
 
         datamodule = {"clip_length": 30}
@@ -163,7 +151,7 @@ def add_configs(ex):
     # Inference settings
 
     @ex.named_config
-    def passt_discogs_5sec_inference():
+    def maest_5s_from_passt_inference():
         "time encodings for up to 5 seconds"
 
         datamodule = {"clip_length": 5}
@@ -178,21 +166,7 @@ def add_configs(ex):
         predict = {"transformer_block": 7}
 
     @ex.named_config
-    def passt_discogs_10sec_inference():
-        "time encodings for up to 10 seconds"
-
-        datamodule = {"clip_length": 10}
-
-        maest = {
-            "arch": "discogs-maest-10s-fs-129e",
-            "input_t": 10 * 16000 // 256,
-            "s_patchout_t": 30,
-        }
-
-        predict = {"transformer_block": 7}
-
-    @ex.named_config
-    def passt_discogs_20sec_inference():
+    def maest_20s_from_passt_inference():
         "time encodings for up to 20 seconds"
 
         datamodule = {"clip_length": 20}
@@ -206,7 +180,7 @@ def add_configs(ex):
         predict = {"transformer_block": 7}
 
     @ex.named_config
-    def passt_discogs_30sec_inference():
+    def maest_30s_from_passt_inference():
         "time encodings for up to 30 seconds"
 
         datamodule = {"clip_length": 30}
@@ -222,7 +196,7 @@ def add_configs(ex):
     # Teacher/student setup (unreleased experiment due to uncertain results).
 
     @ex.named_config
-    def maest_30s_teacher_student_pretrain():
+    def maest_30s_from_passt_teacher_student_pretrain():
         "time encodings for up to 30 seconds"
         "using a teacher classifier"
 
@@ -241,6 +215,29 @@ def add_configs(ex):
             "s_patchout_t": 90,
             "distilled_type": "separated",
         }
+
+    @ex.named_config
+    def maest_30s_from_passt_teacher_student_inference():
+        "time encodings for up to 30 seconds"
+        "using a teacher classifier"
+
+        datamodule = {
+            "batch_size_train": 4,
+            "clip_length": 30,
+            "teacher_student": {
+                "do": True,
+                "teacher_target_base_dir": "/home/palonso/reps/PaSST/logits/discogs/30sec/swa/11/",
+            }
+        }
+
+        maest = {
+            "arch": "discogs-maest-30s-pw-73e-ts",
+            "input_t": 30 * 16000 // 256,
+            "s_patchout_t": 90,
+            "distilled_type": "separated",
+        }
+
+        predict = {"transformer_block": 7}
 
     # Downstream evaluation pipeline
     ################################
