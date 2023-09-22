@@ -1,6 +1,6 @@
 # Music Audio  Efficient Spectrogram Transformer (MAEST)
 
-This repository contains code to pre-train, finetune, and infer with the MAEST models.
+This repository contains code to pre-train, fine-tune, and infer with the MAEST models.
 MAEST is a family of Transformer models based on [PASST](https://github.com/kkoutini/PaSST) and
 focused on music analysis applications.
 
@@ -9,7 +9,7 @@ The MAEST models are also available for inference only as part of the
 
 # Install 
 
-We recommend using the [Conda](https://docs.conda.io) package manager to setup the working envoronment. 
+We recommend using the [Conda](https://docs.conda.io) package manager to setup the working environment. 
 
 
 1. Create a conda environment:
@@ -33,7 +33,7 @@ pip install -r requirements.txt
 # Usage
 
 We use [Sacred](https://github.com/IDSIA/sacred) to run, configure an log our experiments. 
-The different routines can be run with Sacred commands, and many experiment options can be diretly
+The different routines can be run with Sacred commands, and many experiment options can be directly
 configure from the command line.
 
 The output logs are stored in `exp_logs/`, and `exp_logs/lighting_logs/` contains
@@ -68,13 +68,13 @@ python ex_maest.py with maest_10s_from_passt_pretrain
 ##################################################
 
 # time encodings for up to 5 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_5sec_from_passt_pretrain
+python ex_maest.py with maest_5s_from_passt_pretrain
 
 # time encodings for up to 20 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_20sec_from_passt_pretrain
+python ex_maest.py with maest_20s_from_passt_pretrain
 
 # time encodings for up to 30 seconds and initializaiton to the PaSST weights
-python ex_maest.py with maest_30sec_from_passt_pretrain
+python ex_maest.py with maest_30s_from_passt_pretrain
 
 
 # Teacher student setup (requires extracting logits from a pretrained model)
@@ -89,12 +89,12 @@ Due to copyright limitations, we don't share our pre-training dataset (Discogs20
 repository.
 To generate your custom pre-training dataset:
 
-1. Pre-extract mel-spectrograms (or your fovourite representation) for the dataset. As an example, check the [MagnaTagATune's pre-processing](datasets/mtt/preprocess.py).
+1. Pre-extract mel-spectrograms (or your favourite representation) for the dataset. As an example, check the [MagnaTagATune's pre-processing](datasets/mtt/preprocess.py).
 
-2. Generate groundtruth files. We use binary pickle files that store the groundtruth as a dictionary
-   `"path" : (labels tuple)`. Check the [MagnaTagATune training groundtruth file](datasets/mtt/groundtruth-train.pk) as an example.
+2. Generate groundtruth files. We use binary pickle files that store the ground truth as a dictionary
+   `"path" : (labels tuple)`. Check the MagnaTagATune training ground truth [file](datasets/mtt/groundtruth-train.pk) as an example.
 
-3. Update the configuration related to the groundtruth files. For example:
+3. Update the configuration related to the ground truth files. For example:
 
 ```bash
 python ex_maest.py maest_discogos_30s_pretrain with \
@@ -111,7 +111,7 @@ In case more detail related to this stage is required, do not hesitate to contac
 We provide a number of options to extract embeddings from the pre-trained MAEST models presented in
 the paper:
 
-- `extract_embeddings`: retuns a [3, 768] vector with the embeddings for each audio file in
+- `extract_embeddings`: returns a [3, 768] vector with the embeddings for each audio file in
   the `predict` dataset. The three dimensions of the first axis correspond to the CLS token, the
   DIST token and the average of the rest of tokens (see Section 4.1 from the paper). 
 - `extract_logits`: returns logits that can be used in the teacher student setup, or transformed into label predictions by applying a `Sigmoid` function.
@@ -172,7 +172,7 @@ The following `arch` values are supported:
 - `discogs-maest-30s-pw-129e`
 - `discogs-maest-30s-pw-73e-ts`
 
-Additionally, `predict_labels()` is an auxiliry function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for conviniece.
+Additionally, `predict_labels()` is an auxiliary function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for convenience.
 
 ```python
 from models.maest import maest
