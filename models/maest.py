@@ -631,7 +631,7 @@ class MAEST(nn.Module):
                 "self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}"
             )
         time_new_pos_embed = self.time_new_pos_embed
-        if x.shape[-1] < time_new_pos_embed.shape[-1]:
+        if x.shape[-1] <= time_new_pos_embed.shape[-1]:
             if self.training:
                 toffset = torch.randint(
                     1 + time_new_pos_embed.shape[-1] - x.shape[-1], (1,)
