@@ -72,10 +72,14 @@ def main(args):
     args.audio_dir.mkdir(parents=True, exist_ok=True)
     args.melspec_dir.mkdir(parents=True, exist_ok=True)
 
+    print("Downloading MTT...")
     download_mtt(args.download_dir)
+    print("Extracting data...")
     extract_mtt(args.download_dir, args.audio_dir)
+    print("Computing mel-specs...")
     extract_essentia_melspecs(args.audio_dir, args.melspec_dir, max_workers=args.num_workers,
                               force=args.force)
+    print("Done")
 
 
 if __name__ == "__main__":
