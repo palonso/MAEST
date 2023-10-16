@@ -1,6 +1,7 @@
 data_out/*
 exp_out/* 
 exp_logs/*
+datasets/*/data/*
 
 *.swp
 
