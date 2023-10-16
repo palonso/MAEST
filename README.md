@@ -139,7 +139,7 @@ The downstream evaluation requires the following steps:
 1. Dataset pre-processing. For example, for the MagnaTagATune:
 
 ```bash
-cd dataset/mtt/ && python preprocess.py && cd ../../
+cd datasets/mtt/ && python preprocess.py && cd ../../
 ```
 
 2. Embedding extraction:
