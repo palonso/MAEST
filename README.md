@@ -1,3 +1,6 @@
+[![Hugging
+Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/mtg-upf)
+
 # Music Audio  Efficient Spectrogram Transformer (MAEST)
 
 This repository contains code to pre-train, fine-tune, and infer with the MAEST models.
@@ -5,7 +8,7 @@ MAEST is a family of Transformer models based on [PASST](https://github.com/kkou
 focused on music analysis applications.
 
 The MAEST models are also available for inference only as part of the
-[Essentia](https://essentia.upf.edu/models.html#MAEST) library, and as a [hugging-face models](todo).
+[Essentia](https://essentia.upf.edu/models.html#MAEST) library, and as a [hugging-face models](https://huggingface.co/mtg-upf).
 
 # Install 
 
@@ -18,7 +21,7 @@ We recommend using the [Conda](https://docs.conda.io) package manager to setup t
 conda create -n MAEST python=3.10 -y && conda activate MAEST
 ```
 
-2. Install torch 2.0:
+2. Install [Torch 2.0](https://pytorch.org/get-started/pytorch-2.0/). The following command is intended for machines with GPUs. Check the [documentation](https://pytorch.org/get-started/pytorch-2.0/#requirements) otherwise:
 
 ```
 pip install numpy --pre torch torchvision torchaudio --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118
