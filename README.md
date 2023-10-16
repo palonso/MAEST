@@ -1,21 +1,19 @@
-[![Hugging
-Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/mtg-upf)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/mtg-upf)
 
-# Music Audio  Efficient Spectrogram Transformer (MAEST)
+# Music Audio Efficient Spectrogram Transformer (MAEST)
 
 This repository contains code to pre-train, fine-tune, and infer with the MAEST models.
-MAEST is a family of Transformer models based on [PASST](https://github.com/kkoutini/PaSST) and
-focused on music analysis applications.
+MAEST is a family of Transformer models based on [PASST](https://github.com/kkoutini/PaSST) and focused on music analysis applications.
 
 The MAEST models are also available for inference only as part of the
 [Essentia](https://essentia.upf.edu/models.html#MAEST) library, and as a [hugging-face models](https://huggingface.co/mtg-upf).
 
 # Install 
 
-We recommend using the [Conda](https://docs.conda.io) package manager to setup the working environment. 
+Our software has been tested in Ubuntu 22.04 LTS and CentOS 7.5 using Python 3.10.
+If Python 3.10 is not available in your environment, we recommend using the [Conda](https://docs.conda.io) package manager to setup the working environment. 
 
-
-1. Create a conda environment:
+1. Create a conda environment (optional):
 
 ```
 conda create -n MAEST python=3.10 -y && conda activate MAEST
@@ -107,7 +105,7 @@ python ex_maest.py maest_discogos_30s_pretrain with \
     datamodule.base_dir=my/data/dir/
 ```
 
-In case more detail related to this stage is required, do not hesitate to contact us for any further question or clarification!
+In case more details are required, do not hesitate to contact us for any further question or clarification.
 
 ## Inference
 
@@ -156,14 +154,23 @@ python ex_tl.py with target_mtt_tl
 
 ## Using MAEST in your code
 
-MAEST pre-trained models can be loaded in Python both for training and for inference:
+MAEST pre-trained models can be loaded in Python both for training and inference:
 
 ```python
 from models.maest import maest
 model = maest(arch="discogs-maest-10s-fs-129e")
 
-logits, embeddings = model(waveform)
+logits, embeddings = model(data)
 ```
+
+MAEST is designed to accept `data` in different input formats:
+
+- 1D: 16kHz audio waveform is assumed.
+- 2D: mel-spectrogram is assumed (frequency, time).
+- 3D: batched mel-spectrogram (batch, frequency, time).
+- 4D: batched mel-spectrgroam plus singleton channel axis (batch, 1, frequency, time).
+
+The expected mel-spectrogram were extracted with Essentia's [TensorflowInputMusiCNN](https://essentia.upf.edu/reference/streaming_TensorflowInputMusiCNN.html) algorithm.
 
 The following `arch` values are supported:
 
