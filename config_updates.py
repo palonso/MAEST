@@ -69,9 +69,8 @@ def add_configs(ex):
 
         maest = {
             "arch": "discogs-maest-10s-fs-129e",
-            "pretrained": False,
+            "pretrained": True,
             "input_t": 10 * 16000 // 256,
-            "s_patchout_t": 30,
         }
 
         predict = {"transformer_block": 7}
@@ -86,7 +85,6 @@ def add_configs(ex):
             "arch": "discogs-maest-10s-dw-75e",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
-            "s_patchout_t": 30,
         }
 
         predict = {"transformer_block": 7}
@@ -101,7 +99,6 @@ def add_configs(ex):
             "arch": "discogs-maest-10s-pw-129e",
             "pretrained": True,
             "input_t": 10 * 16000 // 256,
-            "s_patchout_t": 30,
         }
 
         predict = {"transformer_block": 7}
@@ -132,18 +129,20 @@ def add_configs(ex):
 
         maest = {
             "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": True,
             "input_t": 20 * 16000 // 256,
             "s_patchout_t": 60,
         }
 
     @ex.named_config
-    def maest_30s_from_past_pretrain():
+    def maest_30s_from_passt_pretrain():
         "time encodings for up to 30 seconds"
 
         datamodule = {"clip_length": 30}
 
         maest = {
             "arch": "passt_s_swa_p16_128_ap476",
+            "pretrained": True,
             "input_t": 30 * 16000 // 256,
             "s_patchout_t": 90,
         }
@@ -157,10 +156,9 @@ def add_configs(ex):
         datamodule = {"clip_length": 5}
 
         maest = {
-            "arch": "discogs-maest-5s-fs-129e",
+            "arch": "discogs-maest-5s-pw-129e",
             "pretrained": True,
             "input_t": 5 * 16000 // 256,
-            "s_patchout_t": 30,
         }
 
         predict = {"transformer_block": 7}
@@ -172,9 +170,9 @@ def add_configs(ex):
         datamodule = {"clip_length": 20}
 
         maest = {
-            "arch": "discogs-maest-20s-fs-129e",
+            "arch": "discogs-maest-20s-pw-129e",
+            "pretrained": True,
             "input_t": 20 * 16000 // 256,
-            "s_patchout_t": 60,
         }
 
         predict = {"transformer_block": 7}
@@ -186,9 +184,9 @@ def add_configs(ex):
         datamodule = {"clip_length": 30}
 
         maest = {
-            "arch": "discogs-maest-30s-fs-129e",
+            "arch": "discogs-maest-30s-pw-129e",
+            "pretrained": True,
             "input_t": 30 * 16000 // 256,
-            "s_patchout_t": 90,
         }
 
         predict = {"transformer_block": 7}
@@ -233,7 +231,6 @@ def add_configs(ex):
         maest = {
             "arch": "discogs-maest-30s-pw-73e-ts",
             "input_t": 30 * 16000 // 256,
-            "s_patchout_t": 90,
             "distilled_type": "separated",
         }
 
@@ -265,5 +262,5 @@ def add_configs(ex):
 
         data = {
             "metadata_dir": "datasets/mtt/",
-            "base_dir": "outputs/embeddings/mtt/10sec/swa/11/",
+            "base_dir": "outputs/embeddings/mtt/30sec/7/",
         }
