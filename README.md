@@ -143,7 +143,7 @@ cd datasets/mtt/ && python preprocess.py && cd ../../
 2. Embedding extraction:
 
 ```bash
-python ex_maest.py extract_embeddings with maest_30s_from_passt_infer target_mtt
+python ex_maest.py extract_embeddings with maest_30s_from_passt_inference target_mtt
 ```
 
 3. Downstream experiment running involving training and testing:
