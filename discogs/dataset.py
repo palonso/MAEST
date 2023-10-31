@@ -55,11 +55,6 @@ class DiscogsDataset(TorchDataset):
     def __len__(self):
         return self.length
 
-    def __del__(self):
-        if self.dataset_file is not None:
-            self.dataset_file.close()
-            self.dataset_file = None
-
     def __getitem__(self, index):
         """Load waveform and target of an audio clip."""
 
