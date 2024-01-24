@@ -204,7 +204,7 @@ def add_configs(ex):
             "teacher_student": {
                 "do": True,
                 "teacher_target_base_dir": "/home/palonso/reps/PaSST/logits/discogs/30sec/swa/11/",
-            }
+            },
         }
 
         maest = {
@@ -225,7 +225,7 @@ def add_configs(ex):
             "teacher_student": {
                 "do": True,
                 "teacher_target_base_dir": "/home/palonso/reps/PaSST/logits/discogs/30sec/swa/11/",
-            }
+            },
         }
 
         maest = {
