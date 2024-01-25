@@ -55,6 +55,7 @@ def default_conf():
         "reload_dataloaders_every_n_epochs": 1,
         "strategy": "ddp_find_unused_parameters_true",
         "default_root_dir": "exp_logs",
+        "num_nodes": 1,
     }
 
     predict = {
