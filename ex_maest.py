@@ -84,7 +84,7 @@ def main(_run, _config, _log, _rnd, _seed):
     else:
         module = Module(distributed_mode=distributed_mode)
 
-    data = DiscogsDataModule()
+    data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
     trainer.fit(module, data)
     return {"done": True}
@@ -97,7 +97,7 @@ def test(_run, _config, _log, _rnd, _seed):
     module = Module()
     module.do_swa = False
 
-    data = DiscogsDataModule()
+    data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
     trainer.test(module, data)
     return {"done": True}
@@ -166,7 +166,7 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
     module.set_prediction_tranformer_block(_config["predict"]["transformer_block"])
     module.eval()
 
-    data = DiscogsDataModule()
+    data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
     outputs = trainer.predict(module, data)
 

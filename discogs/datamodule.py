@@ -37,6 +37,8 @@ def default_config():
 
     clip_length = 10
 
+    num_replicas = 1
+
     roll = {
         "do": False,  # apply roll augmentation
         "axis": -1,
@@ -97,12 +99,14 @@ class DistributedSamplerWrapper(DistributedSampler):
 
 class DiscogsDataModule(pl.LightningDataModule):
     @datamodule_ing.capture
-    def __init__(self, masking):
+    def __init__(self, masking, num_replicas):
         super().__init__()
 
         if masking["do"]:
             params = {k: v for k, v in masking.items() if k != "do"}
             self.spec_masking = SpecMasking(**params)
+
+        self.num_replicas = num_replicas
 
     @datamodule_ing.capture(prefix="roll")
     def get_roll_func(self, axis, shift, shift_range):
@@ -183,11 +187,13 @@ class DiscogsDataModule(pl.LightningDataModule):
         epoch_len,
         sampler_replace,
     ):
-        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        num_replicas = self.num_replicas
         local_rank = int(os.environ.get("LOCAL_RANK", 0))
-        if world_size > 1:
-            _logger.info(f"WORLD_SIZE: {world_size}")
-            _logger.info(f"LOCAL_RANK: {local_rank}")
+
+        if num_replicas > 1:
+            _logger.debug("Distributed training:")
+            _logger.debug(f"  num_replicas: {num_replicas}")
+            _logger.debug(f"  local_rank: {local_rank}")
 
         sample_weights = self.get_ft_cls_balanced_sample_weights(
             groundtruth=groundtruth
@@ -198,7 +204,7 @@ class DiscogsDataModule(pl.LightningDataModule):
                 sample_weights, num_samples=epoch_len, replacement=sampler_replace
             ),
             dataset=range(epoch_len),
-            num_replicas=world_size,
+            num_replicas=num_replicas,
             rank=local_rank,
         )
 
