@@ -624,11 +624,11 @@ class MAEST(nn.Module):
         x = self.patch_embed(x)  # [b, e, f, t]
         B_dim, E_dim, F_dim, T_dim = x.shape  # slow
         if first_RUN:
-            _logger.debug("patch_embed shape: {x.shape}")
+            _logger.debug(f"patch_embed shape: {x.shape}")
         # Adding Time/Freq information
         if first_RUN:
             _logger.debug(
-                "self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}"
+                f"self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}"
             )
         time_new_pos_embed = self.time_new_pos_embed
         if x.shape[-1] <= time_new_pos_embed.shape[-1]:
