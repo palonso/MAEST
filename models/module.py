@@ -87,7 +87,14 @@ class Module(pl.LightningModule):
         loss = F.binary_cross_entropy_with_logits(y_hat, y)
 
         self.log(
-            "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+            "train_loss",
+            loss,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            batch_size=batch_size,
+            sync_dist=True,
         )
         return loss
 
@@ -111,6 +118,7 @@ class Module(pl.LightningModule):
     def test_validation_step(self, batch, batch_idx, output_buffer, stage):
         x, f, y = batch
         outputs = {"y": y.detach()}
+        batch_size = len(y)
 
         net_map = [(None, self.net)]
         if self.do_swa:
@@ -125,7 +133,12 @@ class Module(pl.LightningModule):
             outputs[self._join((name, "y_hat"))] = y_hat
             output_buffer.append(outputs)
 
-            self.log(self._join((stage, "loss", name)), loss)
+            self.log(
+                self._join((stage, "loss", name)),
+                loss,
+                batch_size=batch_size,
+                sync_dist=True,
+            )
 
         return outputs
 
@@ -179,7 +192,8 @@ class Module(pl.LightningModule):
                     self._join((stage, "loss", name)): loss,
                     self._join((stage, "ap", name)): ap,
                     self._join((stage, "roc", name)): roc,
-                }
+                },
+                sync_dist=True,
             )
 
         outputs.clear()
