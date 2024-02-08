@@ -201,6 +201,9 @@ class Module(pl.LightningModule):
     def on_validation_epoch_end(self):
         self.on_test_validation_epoch_end(self.validation_outputs, "val")
 
+        if self.trainer.num_nodes > 1:
+            self.trainer.strategy.barrier()
+
     def on_test_epoch_end(self):
         self.on_test_validation_epoch_end(self.test_outputs, "test")
 
