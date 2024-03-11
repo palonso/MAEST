@@ -844,8 +844,12 @@ class MAEST(nn.Module):
             x = torch.Tensor(x)
 
         x = self.forward_features(
-            x, transformer_block=-1, return_self_attention=return_self_attention
+            x,
+            transformer_block=transformer_block,
+            return_self_attention=return_self_attention,
         )
+        if transformer_block != -1:
+            return None, x
 
         if self.distilled_type == "mean":
             features = (x[0] + x[1]) / 2
@@ -1375,6 +1379,9 @@ def default_conf():
     s_patchout_t_indices = ()
     s_patchout_t_interleaved = 0
     distilled_type = "mean"
+    checkpoint = None
+    checkpoint_swa_weigts = True
+    checkpoint_discard_head = False
 
 
 @maest_ing.capture
@@ -1395,6 +1402,9 @@ def maest(
     s_patchout_t_indices: tuple = (),
     s_patchout_t_interleaved: int = 0,
     distilled_type: str = "mean",
+    checkpoint: str = None,
+    checkpoint_swa_weigts: bool = True,
+    checkpoint_discard_head: bool = False,
 ):
     """
     :param arch: Base ViT or Deit architecture
@@ -1458,5 +1468,20 @@ def maest(
     model = lighten_model(model)
 
     model.eval()
+
+    if checkpoint:
+        state_dict = torch.load(checkpoint)["state_dict"]
+
+        # select swa or standard weights
+        if checkpoint_swa_weigts:
+            replace_str = "net_swa."
+        else:
+            replace_str = ""
+        state_dict = {k.replace(replace_str, ""): v for k, v in state_dict.items()}
+
+        if checkpoint_discard_head:
+            state_dict = {k: v for k, v in state_dict.items() if "head" not in k}
+
+        model.load_state_dict(state_dict, strict=False)
 
     return model
