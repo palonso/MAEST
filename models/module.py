@@ -258,6 +258,7 @@ class Module(pl.LightningModule):
                 monitor=monitor, mode="min", filename="{epoch}-{val_loss:.2f}-best"
             )
         )
+        callbacks.append(ModelCheckpoint(filename="{epoch}", every_n_epochs=1))
         _logger.debug(f"Adding checkpoint monitoring {monitor}")
 
         if self.do_swa:
