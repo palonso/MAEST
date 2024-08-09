@@ -139,6 +139,15 @@ default_cfgs = {
         classifier=("head.1", "head_dist"),
         num_classes=400,
     ),
+    "discogs_maest_30s_pw_129e_519l": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-519l-swa.ckpt",
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
+        input_size=(1, 128, 1875),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=519,
+    ),
 }
 
 
@@ -488,7 +497,10 @@ class MAEST(nn.Module):
         self.melspectrogram_extractor = None
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
-        self.labels = discogs_labels
+        if self.num_classes == 400:
+            self.labels = discogs_400labels
+        elif self.num_classes == 519:
+            self.labels = discogs_519labels
 
         self.patch_embed = embed_layer(
             img_size=img_size,
@@ -1308,6 +1320,30 @@ def discogs_maest_30s_pw_73e_ts(pretrained=False, **kwargs):
     return model
 
 
+def discogs_maest_30s_pw_129e_519l(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+
+    if not kwargs["img_size"][1]:
+        kwargs["img_size"] = (kwargs["img_size"][0], 1875)
+
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+    model = _create_vision_transformer(
+        "discogs_maest_30s_pw_129e_519l",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
 def fix_embedding_layer(model, embed="default"):
     if embed == "default":
         return model
@@ -1444,6 +1480,8 @@ def maest(
         model_func = discogs_maest_30s_pw_129e
     elif arch == "discogs-maest-30s-pw-73e-ts":
         model_func = discogs_maest_30s_pw_73e_ts
+    elif arch == "discogs-maest-30s-pw-129e-519l":
+        model_func = discogs_maest_30s_pw_129e_519l
     else:
         raise NotImplementedError(f"model {arch} not implemented")
 
