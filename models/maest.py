@@ -18,13 +18,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sacred import Ingredient
 
-from .helpers.vit_helpers import (
+from ..helpers.vit_helpers import (
     DropPath,
     trunc_normal_,
     build_model_with_cfg,
 )
-from .helpers.melspectrogram_extractor import MelSpectrogramExtractor
-from .discogs_labels import discogs_labels
+from ..helpers.melspectrogram_extractor import MelSpectrogramExtractor
+from ..discogs_labels import discogs_400labels, discogs_519labels
 
 _logger = logging.getLogger("MAEST")
 
