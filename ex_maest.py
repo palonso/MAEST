@@ -42,6 +42,7 @@ _logger = logging.getLogger("ex_maest")
 def default_conf():
     process_id = os.getpid()
     timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
+    ckpt_path = False
 
     trainer = {
         "max_epochs": 130,
@@ -86,7 +87,7 @@ def main(_run, _config, _log, _rnd, _seed):
 
     data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
-    trainer.fit(module, data)
+    trainer.fit(module, data, ckpt_path=_config["ckpt_path"])
     return {"done": True}
 
 
