@@ -1,8 +1,6 @@
 import torch
-import sys
 from models.maest import maest
 from transformers import ASTConfig, ASTForAudioClassification
-import numpy as np
 from unicodedata import normalize
 
 from models.discogs_labels import discogs_400labels, discogs_519labels
@@ -161,55 +159,3 @@ for model in models:
     maest_feature_extractor.push_to_hub(f"{org}/{model}")
 
 print("finish!")
-exit()
-
-timestamps = 626
-melspec_file = "/data0/palonso/data/discotube30s/a1/a1RR7RcamlU.mp4.mmap"
-
-
-melspec_data = np.memmap(melspec_file, dtype=np.float16, mode="r")
-melspec = np.array(melspec_data).reshape(-1, 96)
-mean = 2.06755686098554
-std = 1.268292820667291
-melspec = (melspec - mean) / (std * 2)
-trim = melspec.shape[0] % timestamps
-if trim:
-    melspec = melspec[:-trim, :]
-
-melspec = melspec.T
-melspec = melspec.reshape(96, -1, timestamps)
-# cut into equally-sized patches.
-# Note that the new batch axis needs to be next to the time.
-# resort axes: batch, channels, freq, time
-melspec = np.swapaxes(melspec, 0, 1)
-data3D = torch.Tensor(melspec)
-data4D = data3D.unsqueeze(1)
-data3D = data3D.transpose(1, 2)
-
-# from torchinfo import summary
-# print("AST")
-# summary(model_ast, input_size=data3D.shape)
-
-# print("MAEST")
-# summary(model_maest, input_size=data4D.shape)
-
-# exit()
-
-model_ast.eval()
-model_maest.eval()
-
-logits_ast = model_ast(data3D).logits
-logits_maest, _ = model_maest(data4D)
-
-preds_ast = torch.mean(torch.sigmoid(logits_ast), dim=0)
-preds_maest = torch.mean(torch.sigmoid(logits_maest), dim=0)
-
-print("AST")
-for i, l in enumerate(preds_ast.argsort()[-5:], 1):
-    print("{}: {} ({:.2f}%)".format(i, discogs_labels[l], preds_ast[l] * 100))
-
-print("MAEST")
-for i, l in enumerate(preds_maest.argsort()[-5:], 1):
-    print("{}: {} ({:.2f}%)".format(i, discogs_labels[l], preds_maest[l] * 100))
-
-# print(torch.eq(logits_ast, logits_maest))
