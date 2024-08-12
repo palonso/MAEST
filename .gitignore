@@ -2,6 +2,8 @@ data_out/*
 exp_out/* 
 exp_logs/*
 datasets/*/data/*
+packaging/input_models/
+packaging/output_models/
 
 *.swp
 
