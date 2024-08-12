@@ -3,7 +3,7 @@ import logging
 import torch
 import lightning.pytorch as pl
 import numpy as np
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint 
 from sacred import Ingredient
 from sklearn import metrics
 
@@ -12,7 +12,7 @@ from torch.nn import functional as F
 
 from helpers.mixup import my_mixup
 from helpers.ramp import exp_warmup_linear_down, cosine_cycle
-from helpers.swa_callback import StochasticWeightAveraging
+from helpers.swa_callback import StochasticWeightAveragingAndCopy
 from models.maest import maest
 
 module_ing = Ingredient("module")
@@ -23,6 +23,7 @@ _logger = logging.getLogger("module")
 def default_conf():
     do_swa = True
     swa_epoch_start = 50
+    swa_lrs = 2e-5
     swa_freq = 5
 
     mixup_alpha = 0.3  # Set to 0 to skip
@@ -46,6 +47,7 @@ class Module(pl.LightningModule):
         self,
         do_swa,
         swa_epoch_start,
+        swa_lrs,
         swa_freq,
         mixup_alpha,
         distributed_mode=False,
@@ -55,6 +57,7 @@ class Module(pl.LightningModule):
         self.do_swa = do_swa
         self.swa_freq = swa_freq
         self.swa_epoch_start = swa_epoch_start
+        self.swa_lrs = swa_lrs
         self.distributed_mode = distributed_mode
 
         self.net = maest()
@@ -263,8 +266,9 @@ class Module(pl.LightningModule):
 
         if self.do_swa:
             callbacks.append(
-                StochasticWeightAveraging(
-                    swa_epoch_start=self.swa_epoch_start, swa_freq=self.swa_freq
+                StochasticWeightAveragingAndCopy(
+                    swa_lrs=self.swa_lrs,
+                    swa_epoch_start=self.swa_epoch_start,
                 )
             )
             _logger.debug("Using swa!")
