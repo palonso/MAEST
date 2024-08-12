@@ -1,4 +1,4 @@
-# set -e
+set -e
 
 for model in \
     discogs-maest-30s-pw-129e-519l \
@@ -16,7 +16,7 @@ do
 
     cd input_models/"$model"
 
-    git remote set-url origin https://palonso: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@huggingface.co/mtg-upf/"$model"
+    git remote set-url origin https://palonso:{$HF_API_TOKEN}@huggingface.co/mtg-upf/"$model"
 
     git lfs pull
 
