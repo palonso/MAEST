@@ -16,6 +16,7 @@ do
 
     cd input_models/"$model"
 
+    # Set and env var with the HF_API_TOKEN (https://huggingface.co/settings/tokens)
     git remote set-url origin https://palonso:{$HF_API_TOKEN}@huggingface.co/mtg-upf/"$model"
 
     git lfs pull
