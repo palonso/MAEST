@@ -1,4 +1,5 @@
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/mtg-upf)
+[![arXiv](https://img.shields.io/badge/arXiv-2309.16418-b31b1b.svg)](https://doi.org/10.48550/arXiv.2309.16418)
 
 # Music Audio Efficient Spectrogram Transformer (MAEST)
 
@@ -7,10 +8,13 @@ MAEST is a family of Transformer models based on [PASST](https://github.com/kkou
 
 The MAEST models are also available for inference from [Essentia](https://essentia.upf.edu/models.html#maest), [Hugging Face](https://huggingface.co/mtg-upf), and [Replicate](https://replicate.com/mtg/maest).
 
-# Install 
+
+https://doi.org/10.48550/arXiv.2309.16418
+
+# Install
 
 Our software has been tested in Ubuntu 22.04 LTS and CentOS 7.5 using Python 3.10.
-If Python 3.10 is not available in your environment, we recommend using the [Conda](https://docs.conda.io) package manager to setup the working environment. 
+If Python 3.10 is unavailable in your environment, we recommend using the [Conda](https://docs.conda.io) package manager to set up the working environment. 
 
 1. Create a conda environment (optional):
 
