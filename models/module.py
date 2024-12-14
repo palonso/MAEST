@@ -3,7 +3,7 @@ import logging
 import torch
 import lightning.pytorch as pl
 import numpy as np
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint 
 from sacred import Ingredient
 from sklearn import metrics
 
@@ -12,7 +12,7 @@ from torch.nn import functional as F
 
 from helpers.mixup import my_mixup
 from helpers.ramp import exp_warmup_linear_down, cosine_cycle
-from helpers.swa_callback import StochasticWeightAveraging
+from helpers.swa_callback import StochasticWeightAveragingAndCopy
 from models.maest import maest
 
 module_ing = Ingredient("module")
@@ -23,6 +23,7 @@ _logger = logging.getLogger("module")
 def default_conf():
     do_swa = True
     swa_epoch_start = 50
+    swa_lrs = 2e-5
     swa_freq = 5
 
     mixup_alpha = 0.3  # Set to 0 to skip
@@ -46,6 +47,7 @@ class Module(pl.LightningModule):
         self,
         do_swa,
         swa_epoch_start,
+        swa_lrs,
         swa_freq,
         mixup_alpha,
         distributed_mode=False,
@@ -55,6 +57,7 @@ class Module(pl.LightningModule):
         self.do_swa = do_swa
         self.swa_freq = swa_freq
         self.swa_epoch_start = swa_epoch_start
+        self.swa_lrs = swa_lrs
         self.distributed_mode = distributed_mode
 
         self.net = maest()
@@ -87,7 +90,14 @@ class Module(pl.LightningModule):
         loss = F.binary_cross_entropy_with_logits(y_hat, y)
 
         self.log(
-            "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+            "train_loss",
+            loss,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            batch_size=batch_size,
+            sync_dist=True,
         )
         return loss
 
@@ -111,6 +121,7 @@ class Module(pl.LightningModule):
     def test_validation_step(self, batch, batch_idx, output_buffer, stage):
         x, f, y = batch
         outputs = {"y": y.detach()}
+        batch_size = len(y)
 
         net_map = [(None, self.net)]
         if self.do_swa:
@@ -125,7 +136,12 @@ class Module(pl.LightningModule):
             outputs[self._join((name, "y_hat"))] = y_hat
             output_buffer.append(outputs)
 
-            self.log(self._join((stage, "loss", name)), loss)
+            self.log(
+                self._join((stage, "loss", name)),
+                loss,
+                batch_size=batch_size,
+                sync_dist=True,
+            )
 
         return outputs
 
@@ -179,13 +195,17 @@ class Module(pl.LightningModule):
                     self._join((stage, "loss", name)): loss,
                     self._join((stage, "ap", name)): ap,
                     self._join((stage, "roc", name)): roc,
-                }
+                },
+                sync_dist=True,
             )
 
         outputs.clear()
 
     def on_validation_epoch_end(self):
         self.on_test_validation_epoch_end(self.validation_outputs, "val")
+
+        if self.trainer.num_nodes > 1:
+            self.trainer.strategy.barrier()
 
     def on_test_epoch_end(self):
         self.on_test_validation_epoch_end(self.test_outputs, "test")
@@ -241,12 +261,14 @@ class Module(pl.LightningModule):
                 monitor=monitor, mode="min", filename="{epoch}-{val_loss:.2f}-best"
             )
         )
+        callbacks.append(ModelCheckpoint(filename="{epoch}", every_n_epochs=1))
         _logger.debug(f"Adding checkpoint monitoring {monitor}")
 
         if self.do_swa:
             callbacks.append(
-                StochasticWeightAveraging(
-                    swa_epoch_start=self.swa_epoch_start, swa_freq=self.swa_freq
+                StochasticWeightAveragingAndCopy(
+                    swa_lrs=self.swa_lrs,
+                    swa_epoch_start=self.swa_epoch_start,
                 )
             )
             _logger.debug("Using swa!")
