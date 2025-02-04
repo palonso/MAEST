@@ -1,7 +1,3 @@
-import argparse
-import os
-from pathlib import Path
-
 import numpy as np
 from essentia.streaming import (
     VectorInput,
@@ -21,13 +17,13 @@ class MelSpectrogramExtractor:
     hop_size = 256
     frame_size = 512
     n_mels = 96
-    window_type = 'hann'
+    window_type = "hann"
     low_frequency_bound = 0
     high_frequency_bound = sample_rate / 2
-    warping_formula = 'slaneyMel'
-    weighting = 'linear'
-    normalize = 'unit_tri'
-    bands_type = 'power'
+    warping_formula = "slaneyMel"
+    weighting = "linear"
+    normalize = "unit_tri"
+    bands_type = "power"
 
     def __init__(self):
         self.pool = Pool()
@@ -54,8 +50,8 @@ class MelSpectrogramExtractor:
             log=False,
         )
 
-        self.shift = UnaryOperator(type='identity', scale=1e4, shift=1)
-        self.compressor = UnaryOperator(type='log10')
+        self.shift = UnaryOperator(type="identity", scale=1e4, shift=1)
+        self.compressor = UnaryOperator(type="log10")
 
         self.frameCutter.frame >> self.windowing.frame >> self.spec.frame
         self.spec.spectrum >> self.mels.spectrum
@@ -70,7 +66,7 @@ class MelSpectrogramExtractor:
         vector_input.data >> self.frameCutter.signal
 
         run(vector_input)
-        mel_bands = np.array(self.pool['mel_bands'])
+        mel_bands = np.array(self.pool["mel_bands"])
 
         self.pool.clear()
         reset(vector_input)
@@ -85,6 +81,5 @@ class MelSpectrogramExtractor:
         return MonoLoader(
             filename=audio_file,
             sampleRate=self.sample_rate,
-            resampleQuality=self.resample_quality
+            resampleQuality=self.resample_quality,
         )()
-
