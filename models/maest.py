@@ -5,6 +5,7 @@ We tried to disentangle from the timm library version.
 Adapted from https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 
 """
+
 import collections
 import math
 import logging
@@ -18,13 +19,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sacred import Ingredient
 
-from ..helpers.vit_helpers import (
+from .helpers.vit_helpers import (
     DropPath,
     trunc_normal_,
     build_model_with_cfg,
 )
-from ..helpers.melspectrogram_extractor import MelSpectrogramExtractor
-from ..discogs_labels import discogs_400labels, discogs_519labels
+from .helpers.melspectrogram_extractor import MelSpectrogramExtractor
+from .discogs_labels import discogs_400labels, discogs_519labels
 
 _logger = logging.getLogger("MAEST")
 
@@ -489,9 +490,9 @@ class MAEST(nn.Module):
         self.s_patchout_f_interleaved = s_patchout_f_interleaved
         self.s_patchout_t_indices = s_patchout_t_indices
         self.s_patchout_t_interleaved = s_patchout_t_interleaved
-        self.num_features = (
-            self.embed_dim
-        ) = embed_dim  # num_features for consistency with other models
+        self.num_features = self.embed_dim = (
+            embed_dim  # num_features for consistency with other models
+        )
         self.num_tokens = 2 if distilled else 1
         self.distilled_type = distilled_type
         self.melspectrogram_extractor = None
