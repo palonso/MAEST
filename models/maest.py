@@ -1421,7 +1421,7 @@ def default_conf():
 
 
 @maest_ing.capture
-def maest(
+def get_maest(
     arch,
     pretrained: bool = True,
     n_classes: int = 400,

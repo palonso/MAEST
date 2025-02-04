@@ -24,10 +24,10 @@ conda create -n MAEST python=3.10 -y && conda activate MAEST
 pip install numpy --pre torch torchvision torchaudio --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118
 ```
 
-3. Install rest of packages:
+3. Install MAEST along with the required dependencies:
 
 ```
-pip install -r requirements.txt
+pip install -e .
 ```
 
 # Usage
@@ -156,8 +156,8 @@ python ex_tl.py with target_mtt_tl
 MAEST pre-trained models can be loaded in Python both for training and inference:
 
 ```python
-from models.maest import maest
-model = maest(arch="discogs-maest-10s-fs-129e")
+from maest import get_maest
+model = get_maest(arch="discogs-maest-10s-fs-129e")
 
 logits, embeddings = model(data)
 ```
@@ -180,12 +180,15 @@ The following `arch` values are supported:
 - `discogs-maest-20s-pw-129e`
 - `discogs-maest-30s-pw-129e`
 - `discogs-maest-30s-pw-73e-ts`
+- `discogs-maest-30s-pw-129e-519l`
+
 
 Additionally, `predict_labels()` is an auxiliary function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for convenience.
 
 ```python
-from models.maest import maest
-model = maest(arch="discogs-maest-10s-fs-129e")
+from maest import get_maest
+model = get_maest(arch="discogs-maest-30s-pw-129e-519l")
+model.eval()
 
 activations, labels = model.predict_labels(data)
 ```

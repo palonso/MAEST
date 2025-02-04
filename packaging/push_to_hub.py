@@ -1,5 +1,5 @@
 import torch
-from models.maest import maest
+from models import get_maest
 from transformers import ASTConfig, ASTForAudioClassification
 from unicodedata import normalize
 
@@ -86,9 +86,9 @@ def recombine_pos_embeddings(state_dict):
     # print(pos_embs.shape)
     pos_embs = torch.cat((state_dict["new_pos_embed"], pos_embs), axis=1)
 
-    state_dict[
-        "audio_spectrogram_transformer.embeddings.position_embeddings"
-    ] = pos_embs
+    state_dict["audio_spectrogram_transformer.embeddings.position_embeddings"] = (
+        pos_embs
+    )
 
     del state_dict["freq_new_pos_embed"]
     del state_dict["time_new_pos_embed"]
@@ -147,7 +147,7 @@ for model in models:
     print(f"Uploading {model} to {org}")
     maest_feature_extractor = MAESTFeatureExtractor(max_length=max_length)
 
-    model_maest = maest(model, n_classes=n_classes)
+    model_maest = get_maest(model, n_classes=n_classes)
     state_dict = update_state_dict_names(model_maest.state_dict())
     state_dict = split_qkv_matrices(state_dict)
     state_dict = recombine_pos_embeddings(state_dict)

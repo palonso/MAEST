@@ -3,7 +3,7 @@ import logging
 import torch
 import lightning.pytorch as pl
 import numpy as np
-from lightning.pytorch.callbacks import ModelCheckpoint 
+from lightning.pytorch.callbacks import ModelCheckpoint
 from sacred import Ingredient
 from sklearn import metrics
 
@@ -13,7 +13,7 @@ from torch.nn import functional as F
 from helpers.mixup import my_mixup
 from helpers.ramp import exp_warmup_linear_down, cosine_cycle
 from helpers.swa_callback import StochasticWeightAveragingAndCopy
-from models.maest import maest
+from models import get_maest
 
 module_ing = Ingredient("module")
 _logger = logging.getLogger("module")
@@ -60,7 +60,7 @@ class Module(pl.LightningModule):
         self.swa_lrs = swa_lrs
         self.distributed_mode = distributed_mode
 
-        self.net = maest()
+        self.net = get_maest()
 
         self.validation_outputs = []
         self.test_outputs = []
