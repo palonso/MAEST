@@ -71,8 +71,12 @@ class MelSpectrogramExtractor:
 
         run(vector_input)
         mel_bands = np.array(self.pool['mel_bands'])
+
+        self.pool.clear()
         reset(vector_input)
-        vector_input.data.disconnect(self.frameCutter.frame)
+
+        vector_input.data.disconnect(self.frameCutter.signal)
+        del vector_input
 
         # to freq, time
         return mel_bands.T
