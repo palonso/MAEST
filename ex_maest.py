@@ -42,6 +42,7 @@ _logger = logging.getLogger("ex_maest")
 def default_conf():
     process_id = os.getpid()
     timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
+    ckpt_path = False
 
     trainer = {
         "max_epochs": 130,
@@ -55,6 +56,7 @@ def default_conf():
         "reload_dataloaders_every_n_epochs": 1,
         "strategy": "ddp_find_unused_parameters_true",
         "default_root_dir": "exp_logs",
+        "num_nodes": 1,
     }
 
     predict = {
@@ -83,9 +85,9 @@ def main(_run, _config, _log, _rnd, _seed):
     else:
         module = Module(distributed_mode=distributed_mode)
 
-    data = DiscogsDataModule()
+    data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
-    trainer.fit(module, data)
+    trainer.fit(module, data, ckpt_path=_config["ckpt_path"])
     return {"done": True}
 
 
@@ -96,7 +98,7 @@ def test(_run, _config, _log, _rnd, _seed):
     module = Module()
     module.do_swa = False
 
-    data = DiscogsDataModule()
+    data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
     trainer.test(module, data)
     return {"done": True}
@@ -165,7 +167,7 @@ def predict(_run, _config, _log, _rnd, _seed, output_name=""):
     module.set_prediction_tranformer_block(_config["predict"]["transformer_block"])
     module.eval()
 
-    data = DiscogsDataModule()
+    data = DiscogsDataModule(num_replicas=_config["trainer"]["devices"])
 
     outputs = trainer.predict(module, data)
 

@@ -5,6 +5,7 @@ We tried to disentangle from the timm library version.
 Adapted from https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 
 """
+
 import collections
 import math
 import logging
@@ -24,7 +25,7 @@ from .helpers.vit_helpers import (
     build_model_with_cfg,
 )
 from .helpers.melspectrogram_extractor import MelSpectrogramExtractor
-from .discogs_labels import discogs_labels
+from .discogs_labels import discogs_400labels, discogs_519labels
 
 _logger = logging.getLogger("MAEST")
 
@@ -138,6 +139,15 @@ default_cfgs = {
         crop_pct=1.0,
         classifier=("head.1", "head_dist"),
         num_classes=400,
+    ),
+    "discogs_maest_30s_pw_129e_519l": _cfg(
+        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-519l-swa.ckpt",
+        mean=DISCOGS_MEAN,
+        std=DISCOGS_STD,
+        input_size=(1, 128, 1875),
+        crop_pct=1.0,
+        classifier=("head.1", "head_dist"),
+        num_classes=519,
     ),
 }
 
@@ -480,15 +490,18 @@ class MAEST(nn.Module):
         self.s_patchout_f_interleaved = s_patchout_f_interleaved
         self.s_patchout_t_indices = s_patchout_t_indices
         self.s_patchout_t_interleaved = s_patchout_t_interleaved
-        self.num_features = (
-            self.embed_dim
-        ) = embed_dim  # num_features for consistency with other models
+        self.num_features = self.embed_dim = (
+            embed_dim  # num_features for consistency with other models
+        )
         self.num_tokens = 2 if distilled else 1
         self.distilled_type = distilled_type
         self.melspectrogram_extractor = None
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
-        self.labels = discogs_labels
+        if self.num_classes == 400:
+            self.labels = discogs_400labels
+        elif self.num_classes == 519:
+            self.labels = discogs_519labels
 
         self.patch_embed = embed_layer(
             img_size=img_size,
@@ -624,11 +637,11 @@ class MAEST(nn.Module):
         x = self.patch_embed(x)  # [b, e, f, t]
         B_dim, E_dim, F_dim, T_dim = x.shape  # slow
         if first_RUN:
-            _logger.debug("patch_embed shape: {x.shape}")
+            _logger.debug(f"patch_embed shape: {x.shape}")
         # Adding Time/Freq information
         if first_RUN:
             _logger.debug(
-                "self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}"
+                f"self.time_new_pos_embed.shape: {self.time_new_pos_embed.shape}"
             )
         time_new_pos_embed = self.time_new_pos_embed
         if x.shape[-1] <= time_new_pos_embed.shape[-1]:
@@ -844,8 +857,12 @@ class MAEST(nn.Module):
             x = torch.Tensor(x)
 
         x = self.forward_features(
-            x, transformer_block=-1, return_self_attention=return_self_attention
+            x,
+            transformer_block=transformer_block,
+            return_self_attention=return_self_attention,
         )
+        if transformer_block != -1:
+            return None, x
 
         if self.distilled_type == "mean":
             features = (x[0] + x[1]) / 2
@@ -879,7 +896,7 @@ class MAEST(nn.Module):
 
     def predict_labels(self, x):
         logits = self.forward(x)[0]
-        activations = nn.functional.softmax(logits, dim=-1)
+        activations = nn.functional.sigmoid(logits)
         activations = torch.mean(activations, dim=0)
         return activations.detach().cpu().numpy(), self.labels
 
@@ -1304,6 +1321,35 @@ def discogs_maest_30s_pw_73e_ts(pretrained=False, **kwargs):
     return model
 
 
+def discogs_maest_30s_pw_129e_519l(pretrained=False, **kwargs):
+    """MAEST pre-trained on Discogs data"""
+    _logger.debug(
+        "Loading MAEST pre-trained on Discogs and initialized to PaSST weights. Patch 16 stride 10 structured patchout mAP=XXX"
+    )
+
+    if not kwargs["img_size"][1]:
+        kwargs["img_size"] = (kwargs["img_size"][0], 1875)
+
+    model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
+    if model_kwargs.get("stride") != (10, 10):
+        warnings.warn(
+            f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
+        )
+
+    if model_kwargs.get("num_classes") != 519:
+        _logger.debug("Forcing `num_classes` to 519")
+        model_kwargs["num_classes"] = 519
+
+    model = _create_vision_transformer(
+        "discogs_maest_30s_pw_129e_519l",
+        pretrained=pretrained,
+        distilled=True,
+        **model_kwargs,
+    )
+
+    return model
+
+
 def fix_embedding_layer(model, embed="default"):
     if embed == "default":
         return model
@@ -1375,10 +1421,13 @@ def default_conf():
     s_patchout_t_indices = ()
     s_patchout_t_interleaved = 0
     distilled_type = "mean"
+    checkpoint = None
+    checkpoint_swa_weigts = True
+    checkpoint_discard_head = False
 
 
 @maest_ing.capture
-def maest(
+def get_maest(
     arch,
     pretrained: bool = True,
     n_classes: int = 400,
@@ -1395,6 +1444,9 @@ def maest(
     s_patchout_t_indices: tuple = (),
     s_patchout_t_interleaved: int = 0,
     distilled_type: str = "mean",
+    checkpoint: str = None,
+    checkpoint_swa_weigts: bool = True,
+    checkpoint_discard_head: bool = False,
 ):
     """
     :param arch: Base ViT or Deit architecture
@@ -1434,6 +1486,8 @@ def maest(
         model_func = discogs_maest_30s_pw_129e
     elif arch == "discogs-maest-30s-pw-73e-ts":
         model_func = discogs_maest_30s_pw_73e_ts
+    elif arch == "discogs-maest-30s-pw-129e-519l":
+        model_func = discogs_maest_30s_pw_129e_519l
     else:
         raise NotImplementedError(f"model {arch} not implemented")
 
@@ -1457,6 +1511,21 @@ def maest(
     model = fix_embedding_layer(model)
     model = lighten_model(model)
 
-    model.eval()
+    # model.eval()
+
+    if checkpoint:
+        state_dict = torch.load(checkpoint)["state_dict"]
+
+        # select swa or standard weights
+        if checkpoint_swa_weigts:
+            replace_str = "net_swa."
+        else:
+            replace_str = ""
+        state_dict = {k.replace(replace_str, ""): v for k, v in state_dict.items()}
+
+        if checkpoint_discard_head:
+            state_dict = {k: v for k, v in state_dict.items() if "head" not in k}
+
+        model.load_state_dict(state_dict, strict=False)
 
     return model
