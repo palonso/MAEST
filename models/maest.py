@@ -1335,6 +1335,11 @@ def discogs_maest_30s_pw_129e_519l(pretrained=False, **kwargs):
         warnings.warn(
             f"This model was pre-trained with strides {(10, 10)}, but now you set (fstride,tstride) to {model_kwargs.get('stride')}."
         )
+
+    if model_kwargs.get("num_classes") != 519:
+        _logger.debug("Forcing `num_classes` to 519")
+        model_kwargs["num_classes"] = 519
+
     model = _create_vision_transformer(
         "discogs_maest_30s_pw_129e_519l",
         pretrained=pretrained,
