@@ -896,7 +896,7 @@ class MAEST(nn.Module):
 
     def predict_labels(self, x):
         logits = self.forward(x)[0]
-        activations = nn.functional.softmax(logits, dim=-1)
+        activations = nn.functional.sigmoid(logits)
         activations = torch.mean(activations, dim=0)
         return activations.detach().cpu().numpy(), self.labels
 
