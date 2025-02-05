@@ -164,10 +164,9 @@ model = get_maest(arch="discogs-maest-10s-fs-129e")
 # Extract logits and embeddings from the last layer
 logits, embeddings = model(data)
 
-# Extract embeddings from the 7th layer.
+# Extract embeddings from the 7th layer as reported in the paper.
 # This is a vector of 2304 dimensions corresponding to the stack of the CLS, DIST,
 # and average of the rest of the tokens.
-as reported in the paper)
 _, embeddings = model(audio, transformer_block=6)
 ```
 
