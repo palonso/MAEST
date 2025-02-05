@@ -5,11 +5,9 @@
 
 This repository contains code to pre-train, fine-tune, and infer with the MAEST models.
 MAEST is a family of Transformer models based on [PASST](https://github.com/kkoutini/PaSST) and focused on music analysis applications.
+Check the [paper](https://doi.org/10.48550/arXiv.2309.16418) for additional details.
 
 The MAEST models are also available for inference from [Essentia](https://essentia.upf.edu/models.html#maest), [Hugging Face](https://huggingface.co/mtg-upf), and [Replicate](https://replicate.com/mtg/maest).
-
-
-https://doi.org/10.48550/arXiv.2309.16418
 
 # Install
 
