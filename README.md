@@ -161,7 +161,14 @@ MAEST pre-trained models can be loaded in Python both for training and inference
 from maest import get_maest
 model = get_maest(arch="discogs-maest-10s-fs-129e")
 
+# Extract logits and embeddings from the last layer
 logits, embeddings = model(data)
+
+# Extract embeddings from the 7th layer.
+# This is a vector of 2304 dimensions corresponding to the stack of the CLS, DIST,
+# and average of the rest of the tokens.
+as reported in the paper)
+_, embeddings = model(audio, transformer_block=6)
 ```
 
 MAEST is designed to accept `data` in different input formats:
