@@ -34,7 +34,7 @@ pip install -e .
 
 # Usage
 
-We use [Sacred](https://github.com/IDSIA/sacred) to run, configure an log our experiments. 
+We use [Sacred](https://github.com/IDSIA/sacred) to run, configure and log our experiments. 
 The different routines can be run with Sacred commands, and many experiment options can be directly
 configure from the command line.
 
