@@ -1506,7 +1506,7 @@ def get_maest(
     model = fix_embedding_layer(model)
     model = lighten_model(model)
 
-    model.eval()
+    # model.eval()
 
     if checkpoint:
         state_dict = torch.load(checkpoint)["state_dict"]
