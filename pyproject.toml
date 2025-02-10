@@ -31,7 +31,7 @@ homepage = "https://github.com/palonso/maest"
 repository = "https://github.com/palonso/maest"
 
 [tool.setuptools]
-packages = ["maest"] 
+packages = ["maest", "maest.helpers"] 
 
 [tool.setuptools.package-dir]
 "maest" = "models"
