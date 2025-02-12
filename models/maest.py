@@ -844,6 +844,19 @@ class MAEST(nn.Module):
             # normalize
             x = (x - DISCOGS_MEAN) / (DISCOGS_STD * 2)
 
+            # zero-pad to if if the input is shorter than the expected size
+            pad = self.img_size[1] - x.shape[1]
+
+            if pad > 0.2 * self.img_size[1]:
+                warnings.warn(
+                    "Padding input by more than 20% of the expected size. "
+                    "This may result in poor performance. "
+                    "Consider using a MAEST models trained with a smaller input size."
+                )
+
+            if pad > 0:
+                x = np.pad(x, ((0, 0), (0, pad)), mode="constant")
+
         if len(x.shape) == 2:
             # need batching
             trim = x.shape[1] % self.img_size[1]
