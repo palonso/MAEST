@@ -14,7 +14,6 @@ readme = "README.md"
 requires-python = ">=3.7"
 
 dependencies = [
-    "essentia",
     "timm~=0.9",
     "torchmetrics~=0.11.4",
     "tqdm~=4.65",
@@ -24,6 +23,7 @@ dependencies = [
     "tensorboard~=2.13.0",
     "numpy~=1.26",
     "torch",
+    "torchaudio",
 ]
 
 [project.urls]

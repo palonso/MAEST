@@ -24,7 +24,7 @@ from .helpers.vit_helpers import (
     trunc_normal_,
     build_model_with_cfg,
 )
-from .helpers.melspectrogram_extractor import MelSpectrogramExtractor
+from .helpers.melspectrogram import MelSpectrogram
 from .discogs_labels import discogs_400labels, discogs_519labels
 
 _logger = logging.getLogger("MAEST")
@@ -583,8 +583,8 @@ class MAEST(nn.Module):
 
         self.init_weights(weight_init)
 
-    def init_melspectrogram_extractor(self):
-        self.melspectrogram_extractor = MelSpectrogramExtractor()
+    def init_melspectrogram(self):
+        self.melspectrogram = MelSpectrogram()
 
     def init_weights(self, mode=""):
         assert mode in ("jax", "jax_nlhb", "nlhb", "")
@@ -663,8 +663,9 @@ class MAEST(nn.Module):
                     f"CUT time_new_pos_embed.shape: {time_new_pos_embed.shape}"
                 )
         else:
-            warnings.warn(
-                f"the patches shape:{x.shape} are larger than the expected time encodings {time_new_pos_embed.shape}, x will be cut"
+            raise Exception(
+                f"the patches shape:{x.shape} are larger than the expected time encodings {time_new_pos_embed.shape},"
+                " please reduce the input duration."
             )
             x = x[:, :, :, : time_new_pos_embed.shape[-1]]
         x = x + time_new_pos_embed
@@ -828,36 +829,43 @@ class MAEST(nn.Module):
             first_RUN = False
             return torch.cat([cls, dist, feats], dim=1)
 
-    def forward(self, x, transformer_block=-1, return_self_attention=False):
+    def forward(
+        self,
+        x,
+        transformer_block: int = -1,
+        return_self_attention: bool = False,
+        melspectrogram_input: bool = False,
+    ):
         global first_RUN
         if first_RUN:
             _logger.debug(f"x size: {len(x)}")
 
         if len(x.shape) == 1:
+            assert melspectrogram_input is False, (
+                "Input is 1D, but melspectrogram_input is True. This is not supported."
+            )
+
             _logger.debug("extracting melspec")
             if not self.melspectrogram_extractor:
                 _logger.debug("initializing melspectrogram extractor")
-                self.init_melspectrogram_extractor()
+                self.init_melspectrogram()
 
             # extract melspec from raw audio
-            x = self.melspectrogram_extractor(x)
-            # normalize
-            x = (x - DISCOGS_MEAN) / (DISCOGS_STD * 2)
+            x = self.melspectrogram(x)
 
-            # zero-pad to if if the input is shorter than the expected size
-            pad = self.img_size[1] - x.shape[1]
+            if x.shape[1] >= self.img_size[1]:
+                # cut into equally-sized patches.
+                trim = x.shape[1] % self.img_size[1]
+                if trim:
+                    x = x[:, :-trim]
+                x = x.reshape(self.img_size[0], 1, -1, self.img_size[1])
+                # resort axes: batch, channels, freq, time
+                x = torch.swapaxes(x, 0, 2)
+            else:
+                x.unsqueeze_(0)
+            x.unsqueeze_(1)
 
-            if pad > 0.2 * self.img_size[1]:
-                warnings.warn(
-                    "Padding input by more than 20% of the expected size. "
-                    "This may result in poor performance. "
-                    "Consider using a MAEST models trained with a smaller input size."
-                )
-
-            if pad > 0:
-                x = np.pad(x, ((0, 0), (0, pad)), mode="constant")
-
-        if len(x.shape) == 2:
+        elif len(x.shape) == 2 and melspectrogram_input:
             # need batching
             trim = x.shape[1] % self.img_size[1]
             if trim:
@@ -868,6 +876,14 @@ class MAEST(nn.Module):
             # resort axes: batch, channels, freq, time
             x = np.swapaxes(x, 0, 2)
             x = torch.tensor(x)
+
+        elif len(x.shape) == 2 and not melspectrogram_input:
+            if not self.melspectrogram_extractor:
+                _logger.debug("initializing melspectrogram extractor")
+                self.init_melspectrogram()
+
+            x = self.melspectrogram(x)
+            x.unsqueeze_(1)
 
         x = self.forward_features(
             x,
