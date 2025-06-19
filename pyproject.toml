@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maest"
-version = "0.1.0"
+version = "0.1.1"
 description = "MAEST model package"
 authors = [
     { name = "Pablo Alonso", email = "pablo.alonso@upf.edu" }
 ]
 license = { text = "AGPL-3.0 license" }
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 
 dependencies = [
     "timm~=0.9",
@@ -24,6 +24,7 @@ dependencies = [
     "numpy~=1.26",
     "torch",
     "torchaudio",
+    "pytest",
 ]
 
 [project.urls]
@@ -31,7 +32,7 @@ homepage = "https://github.com/palonso/maest"
 repository = "https://github.com/palonso/maest"
 
 [tool.setuptools]
-packages = ["maest", "maest.helpers"] 
+packages = ["maest", "maest.helpers"]
 
 [tool.setuptools.package-dir]
 "maest" = "models"
