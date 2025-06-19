@@ -495,7 +495,6 @@ class MAEST(nn.Module):
         )
         self.num_tokens = 2 if distilled else 1
         self.distilled_type = distilled_type
-        self.melspectrogram_extractor = None
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
         if self.num_classes == 400:
@@ -583,7 +582,6 @@ class MAEST(nn.Module):
 
         self.init_weights(weight_init)
 
-    def init_melspectrogram(self):
         self.melspectrogram = MelSpectrogram()
 
     def init_weights(self, mode=""):
@@ -849,9 +847,6 @@ class MAEST(nn.Module):
             )
 
             _logger.debug("extracting melspec")
-            if not self.melspectrogram_extractor:
-                _logger.debug("initializing melspectrogram extractor")
-                self.init_melspectrogram()
 
             # extract melspec from raw audio
             x = self.melspectrogram(x)
@@ -879,10 +874,6 @@ class MAEST(nn.Module):
             x = np.swapaxes(x, 0, 2)
 
         elif len(x.shape) == 2 and not melspectrogram_input:
-            if not self.melspectrogram_extractor:
-                _logger.debug("initializing melspectrogram extractor")
-                self.init_melspectrogram()
-
             x = self.melspectrogram(x)
             x.unsqueeze_(1)
 
