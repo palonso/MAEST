@@ -22,36 +22,56 @@ def test_empty_input(model):
         model(input_data)
 
 
+def test_long_2d_input(model):
+    # Batch of 2 audio samples of 40 seconds each
+    input_data = torch.rand(2, 40 * 16000).float()
+    with pytest.raises(Exception):
+        model(input_data)
+
+
 def test_1d_input(model):
+    # Patch of 10-second audio
     input_data = torch.rand(10 * 16000).float()
-    activations, _ = model(input_data)
-    assert activations.shape == (1, 400), (
-        "Activations shape should be (batch_size, num_classes)"
-    )
+    logits, _ = model(input_data)
+    assert logits.shape == (1, 400), "logits shape should be (batch_size, num_classes)"
 
 
-def test_2d_audio_activations(model):
+def test_2d_audio_logits(model):
     input_data = torch.rand(2, 10 * 16000).float()
     # Batch of 2 audio samples
-    activations, _ = model(input_data, melspectrogram_input=False)
-    assert activations.shape == (2, 400), (
-        "Output batch size should match input batch size"
-    )
+    logits, _ = model(input_data, melspectrogram_input=False)
+    assert logits.shape == (2, 400), "Output batch size should match input batch size"
 
 
-def test_2d_melspec_activations(model):
+def test_2d_melspec_logits(model):
+    # Patch of 30-second mel spectrograms
     input_data = torch.rand(96, 1875).float()
-    # Batch of 10 mel spectrograms
-    activations, _ = model(input_data, melspectrogram_input=True)
-    assert activations.shape == (1, 400), (
-        "Output batch size should match input batch size"
-    )
+    logits, _ = model(input_data, melspectrogram_input=True)
+    assert logits.shape == (1, 400), "Output batch size should match input batch size"
 
 
 def test_2d_melspec_embeddings(model):
+    # Patch of 30-second mel spectrograms
     input_data = torch.rand(96, 1875).float()
-    # Batch of 10 mel spectrograms
     _, embeddings = model(input_data, melspectrogram_input=True, transformer_block=6)
     assert embeddings.shape == (1, 2304), (
+        "Output batch size should match input batch size"
+    )
+
+
+def test_3d_melspec_embeddings(model):
+    # Batch of 2 mel spectrograms
+    input_data = torch.rand(2, 96, 1875).float()
+    _, embeddings = model(input_data, melspectrogram_input=True, transformer_block=6)
+    assert embeddings.shape == (2, 2304), (
+        "Output batch size should match input batch size"
+    )
+
+
+def test_4d_melspec_embeddings(model):
+    # Batch of 2 mel spectrograms
+    input_data = torch.rand(2, 1, 96, 1875).float()
+    _, embeddings = model(input_data, melspectrogram_input=True, transformer_block=6)
+    assert embeddings.shape == (2, 2304), (
         "Output batch size should match input batch size"
     )
