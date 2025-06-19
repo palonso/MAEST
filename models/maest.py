@@ -840,6 +840,8 @@ class MAEST(nn.Module):
         if first_RUN:
             _logger.debug(f"x size: {len(x)}")
 
+        assert isinstance(x, torch.Tensor), "Input must be a torch.Tensor"
+
         if len(x.shape) == 1:
             assert melspectrogram_input is False, (
                 "Input is 1D, but melspectrogram_input is True. This is not supported."
