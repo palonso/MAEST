@@ -12,6 +12,7 @@ import logging
 import warnings
 from collections import OrderedDict
 from functools import partial
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -833,7 +834,20 @@ class MAEST(nn.Module):
         transformer_block: int = -1,
         return_self_attention: bool = False,
         melspectrogram_input: bool = False,
-    ):
+    ) -> Tuple[torch.Tensor | None, torch.Tensor]:
+        """
+        Forward pass of the model.
+        Args:
+            x (torch.Tensor): Input tensor, either raw audio or melspectrogram.
+            transformer_block (int): If -1, returns the output of the last block.
+                If >= 0, returns the output of the specified block.
+            return_self_attention (bool): If True, returns self-attention from the specified block.
+            melspectrogram_input (bool): If True, input is expected to be a melspectrogram.
+        Returns:
+            activations (torch.Tensor): Output tensor with the model's predictions. Requires `transformer_block` to be -1.
+            embeddings (torch.Tensor): Output tensor with the model's embeddings of the selected transformer block.
+        """
+
         global first_RUN
         if first_RUN:
             _logger.debug(f"x size: {len(x)}")
