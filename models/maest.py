@@ -841,6 +841,7 @@ class MAEST(nn.Module):
             _logger.debug(f"x size: {len(x)}")
 
         assert isinstance(x, torch.Tensor), "Input must be a torch.Tensor"
+        assert x.nelement() > 0, "Input tensor must not be empty"
 
         if len(x.shape) == 1:
             assert melspectrogram_input is False, (
