@@ -173,7 +173,8 @@ _, embeddings = model(audio, transformer_block=6)
 MAEST is designed to accept `data` in different input formats:
 
 - 1D: 16kHz audio waveform is assumed.
-- 2D: mel-spectrogram is assumed (frequency, time).
+- 2D: (with `melspectrogram_input=False`) audio is assumed (batch, time).
+- 2D: (`melspectrogram_input=True`) mel-spectrogram is assumed (frequency, time).
 - 3D: batched mel-spectrogram (batch, frequency, time).
 - 4D: batched mel-spectrgroam plus singleton channel axis (batch, 1, frequency, time).
 
