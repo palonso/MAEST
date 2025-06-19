@@ -877,7 +877,6 @@ class MAEST(nn.Module):
             # Note that the new batch axis needs to be next to the time.
             # resort axes: batch, channels, freq, time
             x = np.swapaxes(x, 0, 2)
-            x = torch.tensor(x)
 
         elif len(x.shape) == 2 and not melspectrogram_input:
             if not self.melspectrogram_extractor:
