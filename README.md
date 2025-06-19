@@ -12,7 +12,7 @@ The MAEST models are also available for inference from [Essentia](https://essent
 # Install
 
 Our software has been tested in Ubuntu 22.04 LTS and CentOS 7.5 using Python 3.10.
-If Python 3.10 is unavailable in your environment, we recommend using the [Conda](https://docs.conda.io) package manager to set up the working environment. 
+If Python 3.10 is unavailable in your environment, we recommend using the [Conda](https://docs.conda.io) package manager to set up the working environment.
 
 1. Create a conda environment (optional):
 
@@ -34,7 +34,7 @@ pip install -e .
 
 # Usage
 
-We use [Sacred](https://github.com/IDSIA/sacred) to run, configure and log our experiments. 
+We use [Sacred](https://github.com/IDSIA/sacred) to run, configure and log our experiments.
 The different routines can be run with Sacred commands, and many experiment options can be directly
 configure from the command line.
 
@@ -115,7 +115,7 @@ the paper:
 
 - `extract_embeddings`: returns a [3, 768] vector with the embeddings for each audio file in
   the `predict` dataset. The three dimensions of the first axis correspond to the CLS token, the
-  DIST token and the average of the rest of tokens (see Section 4.1 from the paper). 
+  DIST token and the average of the rest of tokens (see Section 4.1 from the paper).
 - `extract_logits`: returns logits that can be used in the teacher student setup, or transformed into label predictions by applying a `Sigmoid` function.
 
 Each pre-training configuration has its inference version. For example, to extract embeddings
@@ -191,7 +191,6 @@ The following `arch` values are supported:
 - `discogs-maest-30s-pw-73e-ts`
 - `discogs-maest-30s-pw-129e-519l`
 
-
 Additionally, `predict_labels()` is an auxiliary function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for convenience.
 
 ```python
@@ -214,4 +213,3 @@ If you are going to use MAEST as part of your research, please consider citing t
       year={2023},
     }
 ```
-
