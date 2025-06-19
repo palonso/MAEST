@@ -242,7 +242,7 @@ class PatchEmbed(nn.Module):
     def forward(self, x):
         B, C, H, W = x.shape
         if not (H == self.img_size[0] and W == self.img_size[1]):
-            warnings.warn(
+            _logger.debug(
                 f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
             )
         # to do maybe replace weights
