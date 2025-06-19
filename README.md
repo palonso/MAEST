@@ -53,7 +53,12 @@ MAEST is designed to accept `data` in different input formats:
 - 3D: batched mel-spectrogram is assumed (batch, frequency, time).
 - 4D: batched mel-spectrgroam plus singleton channel axis is assumed (batch, 1, frequency, time).
 
-The expected mel-spectrogram were extracted with Essentia's [TensorflowInputMusiCNN](https://essentia.upf.edu/reference/streaming_TensorflowInputMusiCNN.html) algorithm.
+On the 1D case, the input audio will be automatically batched.
+For the rest of the cases, it is the responsability of the user that the time dimension of the input data is not superior to the maximum length of the model (e.g., 10s, 20s, etc.).
+An exception will be raised otherwise.
+
+The models were trained with mel-spectrogram extracted with Essentia's [TensorflowInputMusiCNN](https://essentia.upf.edu/reference/streaming_TensorflowInputMusiCNN.html) algorithm.
+However, the inference version uses torch's [torchaudio](https://pytorch.org/audio/stable/index.html) library to extract mel-spectrograms on the GPU.
 
 The following `arch` values are supported:
 
