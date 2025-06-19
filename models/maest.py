@@ -865,8 +865,7 @@ class MAEST(nn.Module):
                 # resort axes: batch, channels, freq, time
                 x = torch.swapaxes(x, 0, 2)
             else:
-                x.unsqueeze_(0)
-            x.unsqueeze_(1)
+                x = x.reshape(1, 1, x.shape[0], x.shape[1])
 
         elif len(x.shape) == 2 and melspectrogram_input:
             # need batching
