@@ -11,22 +11,16 @@ The MAEST models are also available for inference from [Essentia](https://essent
 
 # Install
 
-Our software has been tested in Ubuntu 22.04 LTS and CentOS 7.5 using Python 3.10.
-If Python 3.10 is unavailable in your environment, we recommend using the [Conda](https://docs.conda.io) package manager to set up the working environment.
+Our software has been tested in Ubuntu 22.04 LTS, CentOS 7.5, and MacOS Sequoia 15.3.2 using Python 3.10 and 3.12.9.
+If MAEST is not working in your current settings we recommend using [Conda](https://docs.conda.io) to set up a working environment with a suitable Python version.
 
-1. Create a conda environment (optional):
+1. (optional) Create a conda environment:
 
 ```
 conda create -n MAEST python=3.10 -y && conda activate MAEST
 ```
 
-2. Install [Torch 2.0](https://pytorch.org/get-started/pytorch-2.0/). The following command is intended for machines with GPUs. Check the [documentation](https://pytorch.org/get-started/pytorch-2.0/#requirements) otherwise:
-
-```
-pip install numpy --pre torch torchvision torchaudio --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118
-```
-
-3. Install MAEST along with the required dependencies:
+2. Install MAEST and its dependencies:
 
 ```
 pip install -e .
@@ -34,14 +28,62 @@ pip install -e .
 
 # Usage
 
+## Using MAEST in your code
+
+MAEST pre-trained models can be loaded in Python both for training and inference:
+
+```python
+from maest import get_maest
+model = get_maest(arch="discogs-maest-10s-fs-129e")
+
+# Extract logits and embeddings from the last layer
+logits, embeddings = model(data)
+
+# Extract embeddings from the 7th layer as reported in the paper.
+# This is a vector of 2304 dimensions corresponding to the stack of the CLS, DIST,
+# and average of the rest of the tokens.
+_, embeddings = model(data, transformer_block=6)
+```
+
+MAEST is designed to accept `data` in different input formats:
+
+- 1D: 16kHz audio waveform is assumed.
+- 2D: (with `melspectrogram_input=False`) audio is assumed (batch, time).
+- 2D: (`melspectrogram_input=True`) mel-spectrogram is assumed (frequency, time).
+- 3D: batched mel-spectrogram is assumed (batch, frequency, time).
+- 4D: batched mel-spectrgroam plus singleton channel axis is assumed (batch, 1, frequency, time).
+
+The expected mel-spectrogram were extracted with Essentia's [TensorflowInputMusiCNN](https://essentia.upf.edu/reference/streaming_TensorflowInputMusiCNN.html) algorithm.
+
+The following `arch` values are supported:
+
+- `discogs-maest-10s-fs-129e`
+- `discogs-maest-10s-pw-129e`
+- `discogs-maest-10s-dw-75e`
+- `discogs-maest-5s-pw-129e`
+- `discogs-maest-20s-pw-129e`
+- `discogs-maest-30s-pw-129e`
+- `discogs-maest-30s-pw-73e-ts`
+- `discogs-maest-30s-pw-129e-519l`
+
+Additionally, `predict_labels()` is an auxiliary function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for convenience.
+
+```python
+from maest import get_maest
+model = get_maest(arch="discogs-maest-30s-pw-129e-519l")
+model.eval()
+
+activations, labels = model.predict_labels(data)
+```
+
+## Running the pre-training experiments
+
 We use [Sacred](https://github.com/IDSIA/sacred) to run, configure and log our experiments.
 The different routines can be run with Sacred commands, and many experiment options can be directly
 configure from the command line.
 
 The output logs are stored in `exp_logs/`, and `exp_logs/lighting_logs/` contains
 [TensorBoard](https://www.tensorflow.org/tensorboard) tracking of the experiments.
-
-## Running the pre-training experiments
 
 The following script runs the pre-training routine:
 
@@ -151,54 +193,6 @@ python ex_maest.py extract_embeddings with maest_30s_from_passt_inference target
 
 ```bash
 python ex_tl.py with target_mtt_tl
-```
-
-## Using MAEST in your code
-
-MAEST pre-trained models can be loaded in Python both for training and inference:
-
-```python
-from maest import get_maest
-model = get_maest(arch="discogs-maest-10s-fs-129e")
-
-# Extract logits and embeddings from the last layer
-logits, embeddings = model(data)
-
-# Extract embeddings from the 7th layer as reported in the paper.
-# This is a vector of 2304 dimensions corresponding to the stack of the CLS, DIST,
-# and average of the rest of the tokens.
-_, embeddings = model(audio, transformer_block=6)
-```
-
-MAEST is designed to accept `data` in different input formats:
-
-- 1D: 16kHz audio waveform is assumed.
-- 2D: (with `melspectrogram_input=False`) audio is assumed (batch, time).
-- 2D: (`melspectrogram_input=True`) mel-spectrogram is assumed (frequency, time).
-- 3D: batched mel-spectrogram (batch, frequency, time).
-- 4D: batched mel-spectrgroam plus singleton channel axis (batch, 1, frequency, time).
-
-The expected mel-spectrogram were extracted with Essentia's [TensorflowInputMusiCNN](https://essentia.upf.edu/reference/streaming_TensorflowInputMusiCNN.html) algorithm.
-
-The following `arch` values are supported:
-
-- `discogs-maest-10s-fs-129e`
-- `discogs-maest-10s-pw-129e`
-- `discogs-maest-10s-dw-75e`
-- `discogs-maest-5s-pw-129e`
-- `discogs-maest-20s-pw-129e`
-- `discogs-maest-30s-pw-129e`
-- `discogs-maest-30s-pw-73e-ts`
-- `discogs-maest-30s-pw-129e-519l`
-
-Additionally, `predict_labels()` is an auxiliary function that applies a sigmoid activation, averages the predictions along the time axes, and returns the label vector for convenience.
-
-```python
-from maest import get_maest
-model = get_maest(arch="discogs-maest-30s-pw-129e-519l")
-model.eval()
-
-activations, labels = model.predict_labels(data)
 ```
 
 # Citing
