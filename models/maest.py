@@ -891,6 +891,9 @@ class MAEST(nn.Module):
             x = self.melspectrogram(x)
             x.unsqueeze_(1)
 
+        elif len(x.shape) == 3:
+            x.unsqueeze_(1)  # add channel dimension
+
         x = self.forward_features(
             x,
             transformer_block=transformer_block,
