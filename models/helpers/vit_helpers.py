@@ -2,12 +2,13 @@
 Adapted from https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 
 """
+
 import math
 import warnings
 from copy import deepcopy
 
 import torch
-from timm.models.helpers import load_pretrained
+from timm.models import load_pretrained
 from torch import nn
 
 
