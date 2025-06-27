@@ -7,7 +7,7 @@ from maest import get_maest
 @pytest.fixture
 def model():
     # Use a simple config for testing; adjust as needed for your environment
-    return get_maest(arch="discogs-maest-30s-pw-129e", pretrained=False)
+    return get_maest(arch="discogs-maest-30s-pw-129e")
 
 
 def test_numpy_input(model):
