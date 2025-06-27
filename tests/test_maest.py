@@ -10,6 +10,24 @@ def model():
     return get_maest(arch="discogs-maest-30s-pw-129e")
 
 
+@pytest.mark.parametrize(
+    "arch",
+    [
+        "discogs-maest-10s-fs-129e",
+        "discogs-maest-10s-pw-129e",
+        "discogs-maest-10s-dw-75e",
+        "discogs-maest-5s-pw-129e",
+        "discogs-maest-20s-pw-129e",
+        "discogs-maest-30s-pw-129e",
+        "discogs-maest-30s-pw-73e-ts",
+        "discogs-maest-30s-pw-129e-519l",
+    ],
+)
+def test_model_loads(arch):
+    model = get_maest(arch=arch)
+    assert model is not None
+
+
 def test_numpy_input(model):
     input_data = np.random.rand(128, 128)
     with pytest.raises(Exception):
