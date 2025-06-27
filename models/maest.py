@@ -583,6 +583,16 @@ class MAEST(nn.Module):
 
         self.init_weights(weight_init)
 
+        self.melspectrogram = None
+
+    def init_melspectrogram(self):
+        """Initialize the melspectrogram extractor."""
+        if self.melspectrogram is not None:
+            _logger.warning(
+                "Melspectrogram extractor already initialized, skipping re-initialization."
+            )
+            return
+
         self.melspectrogram = MelSpectrogram()
 
     def init_weights(self, mode=""):
@@ -863,6 +873,9 @@ class MAEST(nn.Module):
             _logger.debug("extracting melspec")
 
             # extract melspec from raw audio
+            if self.melspectrogram is None:
+                self.init_melspectrogram()
+
             x = self.melspectrogram(x)
 
             if x.shape[1] >= self.img_size[1]:
@@ -888,6 +901,9 @@ class MAEST(nn.Module):
             x = np.swapaxes(x, 0, 2)
 
         elif len(x.shape) == 2 and not melspectrogram_input:
+            if self.melspectrogram is None:
+                self.init_melspectrogram()
+
             x = self.melspectrogram(x)
             x.unsqueeze_(1)
 
